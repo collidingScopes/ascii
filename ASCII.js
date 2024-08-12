@@ -4,13 +4,14 @@ Add video option for "Default Video" that plays on start (my own video)
 Add max video size (resize or just scale it down in browser?)
 Add video export functionality
 Add GUI for pixelSize, background color, text color, etc...
-Make the userVideo play forever on loop
 Allow toggle for different monospace fonts (Japanese, etc.)
 Mode where the font size can be dynamic depending on the photo color
 Allow user to set their own character map choice
 Feature for the photo to spell words (don't map char to color, just write chars in order)
+- For the above, can also play with font colour / opacity (darker colors fade into bg)
 Allow gradient background
 can both the original/new video be recorded at the same time? OBS studio otherwise
+Allow image upload, with function to determine based on the file extension and handle accordingly
 */
 
 var webcamVideo = document.getElementById('webcamVideo');
@@ -33,6 +34,7 @@ var pixelSize;
 var numCols;
 var numRows;
 var alpha=1;
+var pixelSizeFactor = 40;
 
 canvas.width = canvasWidth;
 canvas.height = canvasHeight;
@@ -41,19 +43,21 @@ var videoPixels = [];
 var grayscaleDataArray = [];
 
 var fontSize;
-ctx.font = fontSize+"px Courier New serif";
+ctx.font;
 
 var fontColor = "white";
-var backgroundColor = "navy";
+var backgroundColor = "#0b1563";
 
 var videoTypeInput = document.getElementById("videoTypeInput");
 var videoType = String(videoTypeInput.value);
 videoTypeInput.addEventListener("change",changeVideoType);
 
 //const gradient = "_______.:!/r(l1Z4H9W8$@";
-const gradient = "---...|||~~~123456789@@@"; //this defines the character set. ordered by darker to lighter colour. Add more blanks to create more darkness
+const gradient = "..--<>~~??123456789@@@"; //this defines the character set. ordered by darker to lighter colour. Add more blanks to create more darkness
 const preparedGradient = gradient.replaceAll('_', '\u00A0')
 
+var animationType = "dynamic";
+var textInput = "wavesand";
 var animationRequest;
 var playAnimationToggle = false;
 var webcamStream;
@@ -208,11 +212,11 @@ function changeVideoType(){
 function refresh(){
     console.log("refresh");
     console.log("canvas width/height: "+canvasWidth+", "+canvasHeight);
-    pixelSize = Math.ceil(Math.min(canvasWidth,canvasHeight)/50);
+    pixelSize = Math.ceil(Math.min(canvasWidth,canvasHeight)/pixelSizeFactor);
     numCols = Math.ceil(canvasWidth/pixelSize);
     numRows = Math.ceil(canvasHeight/pixelSize);
     fontSize = pixelSize/0.4;
-    ctx.font = fontSize+"px Courier New serif";
+    ctx.font = fontSize+"px Courier New";
 }
 
 const rainbowColors = [
@@ -310,15 +314,31 @@ function renderText(){
 
     for(var row=0; row<numRows; row++){
         for(var col=0; col<numCols; col++){
-            var char = getCharByScale(grayscaleDataArray[row][col]);
+            
+            if(animationType = "dynamic"){
+                var char = getCharByScale(grayscaleDataArray[row][col]);
 
-            var r = videoPixels[(row*numCols+col)*4];
-            var g = videoPixels[(row*numCols+col)*4 + 1];
-            var b = videoPixels[(row*numCols+col)*4 + 2];
-            var a = 1;
+                var r = videoPixels[(row*numCols+col)*4];
+                var g = videoPixels[(row*numCols+col)*4 + 1];
+                var b = videoPixels[(row*numCols+col)*4 + 2];
+                var a = 1;
+                ctx.fillStyle = "rgb("+r+","+g+","+b+","+a+")";
+            
+                //ctx.fillStyle = fontColor;
+                ctx.fillText(char, col*pixelSize, row*pixelSize + pixelSize/2);
+            } else if(animationType = "fixedText"){
+            
+                var char = textInput[(row*numCols+col)%textInput.length];
+                var currentGrayValue = grayscaleDataArray[row][col]/255;
+                if(currentGrayValue < 0.2){
 
-            ctx.fillStyle = "rgb("+r+","+g+","+b+","+a+")";
-            ctx.fillText(char, col*pixelSize, row*pixelSize + pixelSize/2);
+                } else {
+                    var currentFontSize = Math.floor( Math.pow(grayscaleDataArray[row][col]/255,2) * fontSize );
+                    ctx.font = currentFontSize + 'px Courier New';
+                }
+            
+            }
+            
 
         }
     }
