@@ -1,0 +1,409 @@
+html, body{
+    font-size: 18px;
+    font-family: Helvetica;
+    /*max-width: 100%;
+    overflow-x: hidden;*/
+    margin: 0;
+    padding: 0;
+    position: absolute;
+    background-color: #320541;
+}
+
+#gui {
+    left: 0;
+    position: fixed;
+    top: 0;
+    background-color: black;
+    opacity: 0.9;
+    min-width: 10vw;
+}
+
+#canvasSizeTextBox {
+    left: 88vw;
+    position: fixed;
+    top: 2px;   
+    color: rgb(209, 209, 209);
+    font-size: 0.7em;
+    opacity: 0.7;
+    font-style: italic;
+    text-align: left;
+}
+
+.closed{
+    height: 0px;
+}
+
+#introDiv{
+    width: 100vw;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+
+    background-color: #2D0A3D;
+    padding-top: 2px;
+    padding-bottom: 10px;
+    text-align: center;
+    color:white;
+}
+
+#siteNameText{
+    font-size: 42px;
+    font-family: "Permanent Marker";
+    font-weight: 400;
+    font-style: normal;
+    display:block;
+}
+
+#subtitleText{
+    font-size: 24px;
+    font-family: "Permanent Marker";
+    font-weight: 400;
+    font-style: normal;
+    font-style: italic;
+    margin:0 auto;
+}
+
+#aboutText{
+    font-size: 32px;
+    font-family: "Permanent Marker";
+    font-weight: 400;
+    font-style: normal;
+    display:block;
+    padding: 0;
+    margin: 0;
+}
+
+#toolDiv{
+    width:100vw;
+    box-sizing: border-box;
+    /*overflow: hidden;*/
+    background-color: white;
+    text-align: center;
+    justify-content: center;
+    background-color: #000000;
+}
+
+#notesDiv{
+    width:100vw;
+    box-sizing: border-box;
+    /*overflow: hidden;*/
+    padding: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /*border-top: 5px solid #581845;*/
+    background-color: #17193e;
+    color: white;
+}
+
+#textBox {
+    min-width: 350px;
+    max-width: 75vw;
+}
+
+li {
+    margin-bottom: 6px;
+}
+
+#linksDiv{
+    background-color: #faebf6;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+h2 {
+    font-size: 40px;
+    font-family: Helvetica;
+}
+
+#canvasDiv {
+    display:flex;
+}
+#canvas {
+    /*margin: 0 auto;
+    padding: 0;
+    */
+}
+
+.displayCanvas {
+    float: left;
+}
+
+.exampleImage {
+    max-width: 70vw;
+    margin: 0 auto;
+    padding: 0;
+    display: block;
+}
+
+/* user input styling */
+
+
+:-ms-input-placeholder { /* Internet Explorer 10-11 */
+    color: rgb(194, 194, 194);
+    font-weight: normal;
+}
+
+::-ms-input-placeholder { /* Microsoft Edge */
+    color: rgb(194, 194, 194);
+    font-weight: normal;
+}
+
+input.input-number-noSpinners {
+    -moz-appearance: textfield;
+    border:1px solid rgb(180, 180, 180);
+    padding: 6px;
+    text-align: center;
+    max-width: 25vw;
+}
+
+input.input-number-noSpinners::-webkit-inner-spin-button,
+input.input-number-noSpinners::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+    border:1px solid rgb(180, 180, 180);
+    padding: 4px 0 4px 0;
+}
+
+input:hover{
+    background-color: rgb(246, 252, 255);
+    border:1px solid rgb(146, 146, 146);
+}
+
+.select-style {
+    border-bottom: 2px solid #00b7ff;
+    border-left:none;
+    border-top:none;
+    border-right:none;
+    border-radius:0;
+    overflow: hidden;
+    font-weight:bold;
+    padding:1px;
+    /*
+    //-moz-appearance:none;
+    -webkit-appearance:none;
+    appearance:none;
+    */
+    text-align:center;
+    font-family: Helvetica, sans-serif;
+    font-size:0.95em;
+    outline: none;
+}
+
+#paletteChoice{
+    border-bottom: 2px solid rgb(212, 0, 255) !important;
+}
+
+.select-style select:focus {
+    outline: none;
+}
+
+.hidden {
+    display: none !important;
+}
+
+
+/* Styling for image upload field */
+input, select {
+    cursor: pointer;
+}
+
+input[type="file"] {
+    display: none;
+}
+.custom-file-upload {
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background-color: #226f63;
+    color: #fff;
+    font-weight: bold;
+    font-size: 14px;
+    font-family: Helvetica;
+    display: inline-block;
+    padding: 8px;
+    cursor: pointer;
+    margin-left: 3px;
+    margin-right: 2px;
+}
+
+/* Styling for color inputs */
+input[type="color"] {
+    border: none;
+    background-color: none;
+    padding:0;
+    margin: 0px;
+}
+
+input[type="range"] {
+    max-width:25vw;
+}
+
+input[type="checkbox"] {
+    min-width: 20px;
+    min-height: 20px;
+}
+
+button {
+    padding: 6px;
+    font-weight: bold;
+    font-size: 13px;
+
+    margin: 10px 3px 10px 3px;
+    /*margin-left: 3px;
+    margin-right: 3px;*/
+
+    border: 3px solid #79e2d2;
+    border-radius: 6px;
+    background-color: #ffffff;
+
+    cursor: pointer;
+}
+
+.recordButton{
+    border: 3px solid #4a2bb0;
+    background-color: #4a2bb0;
+    color: white;
+}
+
+.recordButtonStop{
+    border: 3px solid #b02b9c;
+    background-color: #b02b9c;
+    color: white;
+}
+
+.tableText{
+    font-weight: bold;
+    font-size: 0.7em;
+    font-family: Helvetica;
+    color:white;
+}
+
+pre {
+    margin: 0;
+}
+
+/* applies when screen is wide enough */ 
+@media (min-width: 700px) {
+    button, .tableText {
+      font-size: 0.9em;
+    }
+}
+
+table {
+    border-collapse: collapse;
+    margin:auto;
+}
+
+td {
+    max-width: 250px;
+}
+
+#inputTable{
+    font-size:0.8em;
+    text-align: center;
+    /*min-width: 280px;
+    width:80vw;
+    max-width: 350px;
+    margin-top: 15px;
+    margin-bottom: 15px;
+    border-top: 1px solid black;
+    border-bottom: 1px solid black;
+    */
+    width:100vw;
+    /*background-color: rgb(228, 218, 255);*/
+    background-color: #2D0A3D;
+}
+
+#textInput{
+    width: 85vw !important;
+    border: 4px solid rgb(161, 50, 154);
+    font-size: 1.1em;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    text-align: left;
+}
+
+/* applies when screen is wide enough */ 
+@media (min-width: 700px) {
+    #inputTable {
+        font-size:1.0em;
+        /*max-width: 700px;*/
+    }
+}
+
+#videoRecordingMessageDiv{
+    background: rgba(0, 0, 0, 0.75);
+    color:white;
+    font-family: helvetica;
+    font-size: 20px;
+    font-weight: bold;
+    padding: 8px;
+}
+
+.sticky-bottom {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+}
+
+#secondsLeft {
+    font-size: 1.2em;
+    color: #b02b9c;
+}
+
+/*floating loading screen*/
+.lockOn {
+    display: block;
+    visibility: visible;
+    position: fixed;
+    z-index: 999;
+    top: 0px;
+    left: 0px;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(255, 255, 255, 0.25);
+    padding-top: 0%;
+    opacity: 0.9; 
+    font-size:large;
+    color:blue;
+    font-style:italic;
+    font-weight:400;
+    background-image: url(https://github.com/imageMageAge/imageMageAge.github.io/blob/main/images/loadingCircle.gif?raw=true);
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    background-position: center;
+}
+
+/* Styling for table with github and social links */
+
+#infoMenuTable td {
+    text-align:center;
+    border: 0;
+    padding: 20px;
+}
+
+#infoMenuTable{
+    table-layout: fixed;
+    margin: 0px;
+}
+
+a, a:visited{
+    color:rgb(161, 50, 154);
+}
+
+.socialMediaButton{
+    color:rgb(161, 50, 154);
+    font-size: 26px;
+    margin: 0;
+    padding: 4px;
+    border: none;
+    max-width: 50px;
+    max-height: 50px;
+    background-color: transparent;
+}
+
+#buyMeACoffeeButton {
+    font-size: 10px;
+}
