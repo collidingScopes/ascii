@@ -27,9 +27,7 @@ const ctx2 = canvasRaw.getContext("2d", {
 });
 
 const canvasPixel = document.getElementById('canvas-video-pixel')
-const ctx3 = canvasPixel.getContext("2d", {
-    willReadFrequently: true,
-});
+const ctx3 = canvasPixel.getContext("2d");
 
 var webcamVideoWidth = 640;
 var webcamVideoHeight = 480;
@@ -233,7 +231,6 @@ function startDefaultVideo(){
     userVideo.classList.add("hidden");
     webcamVideo.classList.add("hidden");
     defaultVideo.classList.remove("hidden");
-    document.getElementById("fileInputLabel").classList.add("hidden");
 
     canvasWidth = defaultVideoWidth;
     canvasHeight = defaultVideoHeight;
@@ -256,7 +253,6 @@ function startWebcam() {
     userVideo.classList.add("hidden");
     webcamVideo.classList.remove("hidden");
     defaultVideo.classList.add("hidden");
-    document.getElementById("fileInputLabel").classList.add("hidden");
 
     navigator.mediaDevices.getUserMedia({
         audio: false,
@@ -287,6 +283,7 @@ function stopVideo(){
 
     webcamVideo.pause();
     userVideo.pause();
+    defaultVideo.pause();
 
     if(localStream == null){
     } else {
@@ -307,7 +304,6 @@ fileInput.addEventListener('change', (e) => {
     userVideo.classList.remove("hidden");
     webcamVideo.classList.add("hidden");
     defaultVideo.classList.add("hidden");
-    document.getElementById("fileInputLabel").classList.remove("hidden");
 
     const file = e.target.files[0];
     const url = URL.createObjectURL(file);
@@ -384,13 +380,13 @@ const render = (ctx) => {
                 }
 
                 var avgColor = getAverageColor(cellPixels);
-                ctx3.fillStyle = `rgba(${avgColor[0]}, ${avgColor[1]}, ${avgColor[2]}, ${alpha})`;
-                ctx3.fillRect(cellX*pixelSize, cellY*pixelSize, pixelSize, pixelSize);
+                //ctx3.fillStyle = `rgba(${avgColor[0]}, ${avgColor[1]}, ${avgColor[2]}, ${alpha})`;
+                //ctx3.fillRect(cellX*pixelSize, cellY*pixelSize, pixelSize, pixelSize);
                 
-                videoPixels.push(avgColor[0]);
-                videoPixels.push(avgColor[1]);
-                videoPixels.push(avgColor[2]);
-                videoPixels.push(alpha);
+                //videoPixels.push(avgColor[0]);
+                //videoPixels.push(avgColor[1]);
+                //videoPixels.push(avgColor[2]);
+                //videoPixels.push(alpha);
 
                 var grayScaleValue = (avgColor[0]+avgColor[1]+avgColor[2])/3;
                 grayscaleDataArray[cellY][cellX] = grayScaleValue;
@@ -420,106 +416,59 @@ function renderText(){
             
             var currentGrayValue = grayscaleDataArray[row][col];
             var adjustedThreshold = threshold + (0.5 * Math.sin(counter/30) * randomness);
+            var char;
+            var currentFontSize = fontSize;
 
             if(animationType == "Random Text"){
+                char = getCharByScale(currentGrayValue);
+            } else if(animationType == "User Text"){
+                char = textInput[(row*numCols+col)%textInput.length];
+                currentFontSize = Math.min(fontSize, Math.floor( (Math.pow(currentGrayValue/255,2)) * 4 * fontSize ));
+            }
 
+            if(invertToggle == false){
                 if(currentGrayValue/255 > adjustedThreshold){
-                    var char = getCharByScale(currentGrayValue);
                     ctx.fillStyle = "hsl("+backgroundHue+",80%,"+Math.pow(currentGrayValue/255,2)*100+"%)";
-                    //ctx.fillStyle = "rgb("+currentGrayValue+","+currentGrayValue+","+currentGrayValue+","+a+")";
                     ctx.fillRect(col*pixelSize,row*pixelSize,pixelSize,pixelSize);
-                    
+
                     /*
-                    ctx.fillStyle = fontColor;
                     var r = videoPixels[(row*numCols+col)*4];
                     var g = videoPixels[(row*numCols+col)*4 + 1];
                     var b = videoPixels[(row*numCols+col)*4 + 2];
                     var a = 1;
-                    ctx.fillStyle = "rgb("+r+","+g+","+b+")";
+                    ctx.fillStyle = "rgb("+r+","+g+","+b+","+a+")";
+                    ctx.fillRect(col*pixelSize,row*pixelSize,pixelSize,pixelSize);
                     */
-    
+
+                    //var currentFontSize = Math.floor( (Math.pow(currentGrayValue/255,1)) / (1-adjustedThreshold+0.2) * fontSize );
+                    ctx.font = currentFontSize+"px "+fontFamily;
+                    //ctx.fillStyle = fontColor;
+                    //ctx.fillText(char, col*pixelSize + pixelSize/4, row*(pixelSize) + pixelSize/2);
+                    ctx.strokeStyle = fontColor;
+                    ctx.strokeText(char, col*pixelSize + pixelSize/4, row*(pixelSize) + pixelSize/2);
+
+                } else {
+                    ctx.fillStyle = "hsl("+backgroundHue+",80%,"+adjustedThreshold/4*100+"%)";
+                    ctx.fillRect(col*pixelSize,row*pixelSize,pixelSize,pixelSize);
+                   
+                }
+            } else {
+                if(currentGrayValue/255 < (1-adjustedThreshold)){
+                    ctx.fillStyle = "hsl("+backgroundHue+",80%,"+Math.pow(currentGrayValue/255,2)*100+"%)";
+                    ctx.fillRect(col*pixelSize,row*pixelSize,pixelSize,pixelSize);
+
+                    ctx.font = currentFontSize+"px "+fontFamily;
                     ctx.fillStyle = fontColor;
                     ctx.fillText(char, col*pixelSize + pixelSize/4, row*(pixelSize) + pixelSize/2);
-    
                     //ctx.strokeStyle = fontColor;
                     //ctx.strokeText(char, col*pixelSize + pixelSize/4, row*(pixelSize) + pixelSize/2);
 
-                }  else {
-                    ctx.fillStyle = "hsl("+backgroundHue+",80%,"+adjustedThreshold/4*100+"%)";
-                    ctx.fillRect(col*pixelSize,row*pixelSize,pixelSize,pixelSize);
-
-                }
-
-
-            } else if(animationType == "User Text"){
-            
-                var char = textInput[(row*numCols+col)%textInput.length];
-
-                if(invertToggle == false){
-                    if(currentGrayValue/255 > adjustedThreshold){
-                        ctx.fillStyle = "hsl("+backgroundHue+",80%,"+Math.pow(currentGrayValue/255,2)*100+"%)";
-                        ctx.fillRect(col*pixelSize,row*pixelSize,pixelSize,pixelSize);
-    
-                        /*
-                        var r = videoPixels[(row*numCols+col)*4];
-                        var g = videoPixels[(row*numCols+col)*4 + 1];
-                        var b = videoPixels[(row*numCols+col)*4 + 2];
-                        var a = 1;
-                        ctx.fillStyle = "rgb("+r+","+g+","+b+","+a+")";
-                        ctx.fillRect(col*pixelSize,row*pixelSize,pixelSize,pixelSize);
-                        */
-
-                        var currentFontSize = Math.floor( (Math.pow(currentGrayValue/255,1)) / (1-adjustedThreshold+0.2) * fontSize );
-                        ctx.font = currentFontSize+"px "+fontFamily;
-                        //ctx.fillStyle = fontColor;
-                        //ctx.fillText(char, col*pixelSize + pixelSize/4, row*(pixelSize) + pixelSize/2);
-                        ctx.strokeStyle = fontColor;
-                        ctx.strokeText(char, col*pixelSize + pixelSize/4, row*(pixelSize) + pixelSize/2);
-    
-                    } else {
-                        ctx.fillStyle = "hsl("+backgroundHue+",80%,"+adjustedThreshold/4*100+"%)";
-                        ctx.fillRect(col*pixelSize,row*pixelSize,pixelSize,pixelSize);
-                       
-                        /*
-                        //Fill cells which don't pass threshold with actual colour
-                        var r = videoPixels[(row*numCols+col)*4];
-                        var g = videoPixels[(row*numCols+col)*4 + 1];
-                        var b = videoPixels[(row*numCols+col)*4 + 2];
-                        var a = 1;
-                        //ctx.fillStyle = "hsl("+backgroundHue+",80%,"+currentGrayValue/255*100+"%)";
-                        ctx.fillStyle = "rgb("+r+","+g+","+b+","+a+")";
-                        ctx.fillRect(col*pixelSize,row*pixelSize,pixelSize,pixelSize);
-                        */
-                    }
                 } else {
-                    if(currentGrayValue/255 < adjustedThreshold){
-                        ctx.fillStyle = "hsl("+backgroundHue+",80%,"+Math.pow(currentGrayValue/255,2)*100+"%)";
-                        ctx.fillRect(col*pixelSize,row*pixelSize,pixelSize,pixelSize);
-    
-                        var currentFontSize = Math.floor( (1-Math.pow(currentGrayValue/255,1)) * fontSize );
-                        ctx.font = currentFontSize+"px "+fontFamily;
-                        ctx.fillStyle = fontColor;
-                        ctx.fillText(char, col*pixelSize + pixelSize/4, row*(pixelSize) + pixelSize/2);
-                        //ctx.strokeStyle = fontColor;
-                        //ctx.strokeText(char, col*pixelSize + pixelSize/4, row*(pixelSize) + pixelSize/2);
-    
-                    } else {
-                        /*
-                        //Fill cells which don't pass threshold with actual colour
-                        var r = videoPixels[(row*numCols+col)*4];
-                        var g = videoPixels[(row*numCols+col)*4 + 1];
-                        var b = videoPixels[(row*numCols+col)*4 + 2];
-                        var a = 1;
-                        ctx.fillStyle = "rgb("+r+","+g+","+b+","+a+")";
-                        ctx.fillRect(col*pixelSize,row*pixelSize,pixelSize,pixelSize);
-                        */
-                    }
-                }
 
-            
-            }
-            
+                }
+            }            
         }
+        
     }
 
 }
