@@ -7,11 +7,9 @@
     <link rel="stylesheet" type="text/css" href="style.css">
     <script type="text/javascript" src="dat.gui-master/build/dat.gui.min.js"></script>
   
-    <!-- Google fonts
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" rel="stylesheet">
-     -->
+    <link href="https://fonts.googleapis.com/css2?family=Rubik+Mono+One&display=swap" rel="stylesheet">
   
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   
@@ -33,24 +31,19 @@
 
 <body>
 
-    <div>
-        <select id="videoTypeInput" class="select-style userInput">
-            <option value="webcam" selected="selected">Webcam</option>
-            <option value="userVideo">Upload Video</option>
-        </select>
-        
-        <label for="fileInput" class="custom-file-upload hidden" id="fileInputLabel">
-            <i class="fa fa-cloud-upload"></i> Select video
-        </label>
-        <input type="file" id="fileInput" accept="video/*, image/*">
-        
-        <!--
-        <button id="captureButton">Capture</button>
-        <button id="stopButton">Stop</button>
-        -->
-        <button id="pausePlayButton">Pause/Play (p)</button>
+    <div id="gui"></div>
 
-    </div>
+    <!--
+    <select id="videoTypeInput" class="select-style userInput">
+        <option value="webcam" selected="selected">Webcam</option>
+        <option value="userVideo">Upload Video</option>
+    </select>
+    -->
+
+    
+    <!--
+    <button id="pausePlayButton">Pause/Play (p)</button>
+    -->
 
     <div id="canvasDiv">
         <canvas id="canvas" class="displayCanvas"></canvas>
@@ -59,6 +52,15 @@
 
         <canvas id="canvas-video" class="displayCanvas hidden"></canvas>
         <canvas id="canvas-video-pixel" class="displayCanvas hidden"></canvas>
+    </div>
+
+    <label for="fileInput" class="custom-file-upload hidden" id="fileInputLabel">
+        <i class="fa fa-cloud-upload"></i> Select video
+    </label>
+    <input type="file" id="fileInput" accept="video/*, image/*">
+
+    <div id="videoRecordingMessageDiv" class="hidden sticky-bottom">
+        Video recording underway. Press menu button or "v" to stop. The video will be saved to your downloads folder afterwards.
     </div>
 
 </body>
