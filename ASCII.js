@@ -1,21 +1,16 @@
 /*
 To do:
-Add video option for "Default Video" that plays on start (my own video)
+Add video option for "Default Video" that plays on start (use the wave video)
 Add max video size (resize or just scale it down in browser?)
-Add video export functionality
-Add GUI for pixelSize, background color, text color, etc...
 Allow toggle for different monospace fonts (Japanese, etc.)
-Mode where the font size can be dynamic depending on the photo color
-Allow user to set their own character map choice
-Feature for the photo to spell words (don't map char to color, just write chars in order)
-- For the above, can also play with font colour / opacity (darker colors fade into bg)
 Allow gradient background
 can both the original/new video be recorded at the same time? OBS studio otherwise
 Allow image upload, with function to determine based on the file extension and handle accordingly
-Modularize threshold for fixedText style
 Investigate frame rate unsynced issue when video recording
 Create option to invert the threshold (show black or show white toggle)
-
+Improve performance by reading video / doing pixel+grayscale in a single canvas
+Add small amount of randomness (colour flickering, letter changing, etc.)
+Change shortcuts so that they don't interfere with the text input (add control to front?)
 */
 
 var webcamVideo = document.getElementById('webcamVideo');
@@ -25,10 +20,14 @@ var canvas = document.getElementById("canvas");
 var ctx = canvas.getContext("2d");
 
 const canvasRaw = document.getElementById('canvas-video')
-const ctx2 = canvasRaw.getContext('2d');
+const ctx2 = canvasRaw.getContext("2d", {
+    willReadFrequently: true,
+});
 
 const canvasPixel = document.getElementById('canvas-video-pixel')
-const ctx3 = canvasPixel.getContext('2d');
+const ctx3 = canvasPixel.getContext("2d", {
+    willReadFrequently: true,
+});
 
 var webcamVideoWidth = 640;
 var webcamVideoHeight = 480;
@@ -59,11 +58,11 @@ ctx.font;
 const gradient = "..--<>~~??123456789@@@"; //this defines the character set. ordered by darker to lighter colour. Add more blanks to create more darkness
 const preparedGradient = gradient.replaceAll('_', '\u00A0')
 
-var animationType = "fixedText";
 //var textInput = "wavesand";
-var textInput = "♫♪iPod"
+//var textInput = "♫♪iPod"
 var animationRequest;
 var playAnimationToggle = false;
+var counter = 0;
 var webcamStream;
 
 //detect user browser
@@ -95,47 +94,59 @@ var videoRecordInterval;
 var videoEncoder;
 var muxer;
 var mobileRecorder;
-var videofps = 10;
+var videofps = 30;
+var frameNumber = 0;
 
 
 //add gui
 var obj = {
-videoType: 'Webcam',
-backgroundColor: "#0b1563",
-pixelSizeFactor: 50,
+    videoType: 'Webcam',
+    backgroundColor: "#0b1563",
+    fontColor: "#ffffff",
+    pixelSizeFactor: 50,
+    threshold: 30,
+    textInput: "wavesand",
+    randomness: 20,
+    invert: false,
+    animationType: 'Random Text',
 };
+
 var videoType = obj.videoType;
+var animationType = obj.animationType;
 var backgroundColor = obj.backgroundColor;
 var backgroundHue = getHueFromHex(backgroundColor);
 var pixelSizeFactor = obj.pixelSizeFactor;
-var fontColor = "white";
+var fontColor = obj.fontColor;
+var threshold = obj.threshold/100;
+var textInput = obj.textInput;
+var randomness = obj.randomness/100;
+var invertToggle = obj.invert;
 
 var gui = new dat.gui.GUI({ autoPlace: false });
 gui.close();
 var guiOpenToggle = false;
 
 // Choose from accepted values
-gui.add(obj, 'videoType', [ 'Default', 'Select Video', 'Webcam'] ).name('Video Type').listen().onChange(changeVideoType);
+gui.add(obj, 'videoType', [ 'Default', 'Select Video', 'Webcam'] ).name('Video Type').onChange(changeVideoType);
+gui.add(obj, 'animationType', [ 'Random Text', 'User Text'] ).name('Text Type').onChange(refresh);
+gui.add(obj, "textInput").onFinishChange(refresh);
 gui.addColor(obj, "backgroundColor").name("Background Color").onFinishChange(refresh);
-gui.add(obj, "pixelSizeFactor").min(10).max(100).step(1).name('Pixel Size').listen().onChange(refresh);
+gui.addColor(obj, "fontColor").name("Font Color").onFinishChange(refresh);
+gui.add(obj, "pixelSizeFactor").min(10).max(150).step(1).name('Resolution').onChange(refresh);
+gui.add(obj, "threshold").min(5).max(95).step(1).name('Threshold').onChange(refresh);
+gui.add(obj,"invert").name('Invert?').onChange(refresh);
+gui.add(obj, "randomness").min(0).max(100).step(1).name('Randomness').onChange(refresh);
+
 
 obj['selectVideo'] = function () {
-imageInput.click();
+fileInput.click();
 };
 gui.add(obj, 'selectVideo').name('Select Video');
-
-/*
-gui.add(obj, "brushDensity").min(1).max(100).step(1).name('Brush Density').listen().onChange(getUserInputs);
-gui.add(obj, "opacity").min(5).max(100).step(1).name('Brush Opacity').listen().onChange(getUserInputs);
-gui.add(obj, "animationSpeed").min(1).max(50).step(1).name('Animation Speed').onChange(getUserInputs);
-gui.add(obj, "marker").name("Marker Dot (m)").listen().onChange(toggleMarkerDraw);
-gui.addColor(obj, "markerColor").name("Marker Color").onFinishChange(getUserInputs);
-*/
 
 obj['pausePlay'] = function () {
 togglePausePlay();
 };
-gui.add(obj, 'pausePlay').name("Pause Play (r)");
+gui.add(obj, 'pausePlay').name("Pause/Play (p)");
 
 obj['saveImage'] = function () {
 saveImage();
@@ -150,6 +161,27 @@ gui.add(obj, 'saveVideo').name("Start/Stop Video Export (v)");
 customContainer = document.getElementById( 'gui' );
 customContainer.appendChild(gui.domElement);
 
+
+function refresh(){
+    console.log("refresh");
+    console.log("canvas width/height: "+canvasWidth+", "+canvasHeight);
+    animationType = obj.animationType;
+    pixelSizeFactor = obj.pixelSizeFactor;
+    pixelSize = Math.ceil(Math.min(canvasWidth,canvasHeight)/pixelSizeFactor);
+    numCols = Math.ceil(canvasWidth/pixelSize);
+    numRows = Math.ceil(canvasHeight/pixelSize);
+    fontSize = pixelSize/0.6;
+    ctx.font = fontSize+"px "+fontFamily;
+    fontColor = obj.fontColor;
+    backgroundColor = obj.backgroundColor;
+    backgroundHue = getHueFromHex(backgroundColor);
+    threshold = obj.threshold/100;
+    textInput = obj.textInput;
+    counter = 0;
+    randomness = obj.randomness/100;
+    invertToggle = obj.invert;
+    frameNumber = 0;
+}
 
 function togglePausePlay(){
     
@@ -217,20 +249,6 @@ function stopVideo(){
     //webcamVideo.src = '';
 }
 
-
-/*
-const init = () => {
-    webcamStream = navigator.mediaDevices.getUserMedia({ video: true, audio: false })
-        .then(function (stream) {
-            video.srcObject = stream;
-            video.play();
-        })
-        .catch(function (err) {
-            console.log("An error occurred: " + err);
-        });
-}
-*/
-
 var fileInput = document.getElementById("fileInput");
 fileInput.addEventListener('change', (e) => {
 
@@ -285,35 +303,6 @@ function changeVideoType(){
 
     refresh();
 
-}
-
-function refresh(){
-    console.log("refresh");
-    console.log("canvas width/height: "+canvasWidth+", "+canvasHeight);
-    pixelSizeFactor = obj.pixelSizeFactor;
-    pixelSize = Math.ceil(Math.min(canvasWidth,canvasHeight)/pixelSizeFactor);
-    numCols = Math.ceil(canvasWidth/pixelSize);
-    numRows = Math.ceil(canvasHeight/pixelSize);
-    fontSize = pixelSize/0.6;
-    ctx.font = fontSize+"px "+fontFamily;
-    backgroundColor = obj.backgroundColor;
-    backgroundHue = getHueFromHex(backgroundColor);
-}
-
-const rainbowColors = [
-    '#9400D3',
-    '#4B0082',
-    '#0000FF',
-    '#00FF00',
-    '#FFFF00',
-    '#FF7F00',
-    '#FF0000'
-]
-
-
-const clearphoto = () => {
-    ctx2.fillStyle = "#fff";
-    ctx2.fillRect(0, 0, canvasWidth, canvasHeight);
 }
 
 const render = (ctx) => {
@@ -378,7 +367,8 @@ const render = (ctx) => {
         }
 
     } else {
-        clearphoto();
+        ctx2.fillStyle = "#fff";
+        ctx2.fillRect(0, 0, canvasWidth, canvasHeight);
     }
 }
 
@@ -397,61 +387,128 @@ function renderText(){
         for(var col=0; col<numCols; col++){
             
             var currentGrayValue = grayscaleDataArray[row][col];
+            var adjustedThreshold = threshold + (0.5 * Math.sin(counter/30) * randomness);
 
-            if(animationType == "dynamic"){
-                var char = getCharByScale(currentGrayValue);
+            if(animationType == "Random Text"){
 
-                var r = videoPixels[(row*numCols+col)*4];
-                var g = videoPixels[(row*numCols+col)*4 + 1];
-                var b = videoPixels[(row*numCols+col)*4 + 2];
-                var a = 1;
-                ctx.fillStyle = "hsl("+backgroundHue+",80%,"+currentGrayValue/255*100+"%)";
-                //ctx.fillStyle = "rgb("+currentGrayValue+","+currentGrayValue+","+currentGrayValue+","+a+")";
-                ctx.fillRect(col*pixelSize,row*pixelSize,pixelSize,pixelSize);
-                
-                ctx.fillStyle = fontColor;
-                //ctx.fillStyle = "rgb("+r+","+g+","+b+")";
-                ctx.fillText(char, col*pixelSize, row*(pixelSize) + pixelSize);
-
-            } else if(animationType == "fixedText"){
-            
-                var char = textInput[(row*numCols+col)%textInput.length];
-                if(currentGrayValue/255 > 0.4){
-                    //var currentFontSize = Math.floor( (1-Math.pow(grayscaleDataArray[row][col]/255,2)) * fontSize );
-                    //ctx.fillStyle = fontColor;
-                    //ctx.font = currentFontSize+"px "+fontFamily;
-                    ctx.fillStyle = "hsl("+backgroundHue+",80%,"+currentGrayValue/255*100+"%)";
+                if(currentGrayValue/255 > adjustedThreshold){
+                    var char = getCharByScale(currentGrayValue);
+                    ctx.fillStyle = "hsl("+backgroundHue+",80%,"+Math.pow(currentGrayValue/255,2)*100+"%)";
+                    //ctx.fillStyle = "rgb("+currentGrayValue+","+currentGrayValue+","+currentGrayValue+","+a+")";
                     ctx.fillRect(col*pixelSize,row*pixelSize,pixelSize,pixelSize);
-                    ctx.fillStyle = fontColor;
-                    ctx.fillText(char, col*pixelSize, row*(pixelSize) + pixelSize);
-                } else {
+                    
                     /*
-                    //Fill cells which don't pass threshold with actual colour
+                    ctx.fillStyle = fontColor;
                     var r = videoPixels[(row*numCols+col)*4];
                     var g = videoPixels[(row*numCols+col)*4 + 1];
                     var b = videoPixels[(row*numCols+col)*4 + 2];
                     var a = 1;
-                    //ctx.fillStyle = "hsl("+backgroundHue+",80%,"+currentGrayValue/255*100+"%)";
-                    ctx.fillStyle = "rgb("+r+","+g+","+b+","+a+")";
-                    ctx.fillRect(col*pixelSize,row*pixelSize,pixelSize,pixelSize);
+                    ctx.fillStyle = "rgb("+r+","+g+","+b+")";
                     */
+    
+                    ctx.fillStyle = fontColor;
+                    ctx.fillText(char, col*pixelSize + pixelSize/4, row*(pixelSize) + pixelSize/2);
+    
+                    //ctx.strokeStyle = fontColor;
+                    //ctx.strokeText(char, col*pixelSize + pixelSize/4, row*(pixelSize) + pixelSize/2);
+
+                }  else {
+                    ctx.fillStyle = "hsl("+backgroundHue+",80%,"+adjustedThreshold/4*100+"%)";
+                    ctx.fillRect(col*pixelSize,row*pixelSize,pixelSize,pixelSize);
+
                 }
+
+
+            } else if(animationType == "User Text"){
+            
+                var char = textInput[(row*numCols+col)%textInput.length];
+
+                if(invertToggle == false){
+                    if(currentGrayValue/255 > adjustedThreshold){
+                        ctx.fillStyle = "hsl("+backgroundHue+",80%,"+Math.pow(currentGrayValue/255,2)*100+"%)";
+                        ctx.fillRect(col*pixelSize,row*pixelSize,pixelSize,pixelSize);
+    
+                        /*
+                        var r = videoPixels[(row*numCols+col)*4];
+                        var g = videoPixels[(row*numCols+col)*4 + 1];
+                        var b = videoPixels[(row*numCols+col)*4 + 2];
+                        var a = 1;
+                        ctx.fillStyle = "rgb("+r+","+g+","+b+","+a+")";
+                        ctx.fillRect(col*pixelSize,row*pixelSize,pixelSize,pixelSize);
+                        */
+
+                        var currentFontSize = Math.floor( (Math.pow(currentGrayValue/255,1)) / (1-adjustedThreshold+0.2) * fontSize );
+                        ctx.font = currentFontSize+"px "+fontFamily;
+                        //ctx.fillStyle = fontColor;
+                        //ctx.fillText(char, col*pixelSize + pixelSize/4, row*(pixelSize) + pixelSize/2);
+                        ctx.strokeStyle = fontColor;
+                        ctx.strokeText(char, col*pixelSize + pixelSize/4, row*(pixelSize) + pixelSize/2);
+    
+                    } else {
+                        ctx.fillStyle = "hsl("+backgroundHue+",80%,"+adjustedThreshold/4*100+"%)";
+                        ctx.fillRect(col*pixelSize,row*pixelSize,pixelSize,pixelSize);
+                       
+                        /*
+                        //Fill cells which don't pass threshold with actual colour
+                        var r = videoPixels[(row*numCols+col)*4];
+                        var g = videoPixels[(row*numCols+col)*4 + 1];
+                        var b = videoPixels[(row*numCols+col)*4 + 2];
+                        var a = 1;
+                        //ctx.fillStyle = "hsl("+backgroundHue+",80%,"+currentGrayValue/255*100+"%)";
+                        ctx.fillStyle = "rgb("+r+","+g+","+b+","+a+")";
+                        ctx.fillRect(col*pixelSize,row*pixelSize,pixelSize,pixelSize);
+                        */
+                    }
+                } else {
+                    if(currentGrayValue/255 < adjustedThreshold){
+                        ctx.fillStyle = "hsl("+backgroundHue+",80%,"+Math.pow(currentGrayValue/255,2)*100+"%)";
+                        ctx.fillRect(col*pixelSize,row*pixelSize,pixelSize,pixelSize);
+    
+                        var currentFontSize = Math.floor( (1-Math.pow(currentGrayValue/255,1)) * fontSize );
+                        ctx.font = currentFontSize+"px "+fontFamily;
+                        ctx.fillStyle = fontColor;
+                        ctx.fillText(char, col*pixelSize + pixelSize/4, row*(pixelSize) + pixelSize/2);
+                        //ctx.strokeStyle = fontColor;
+                        //ctx.strokeText(char, col*pixelSize + pixelSize/4, row*(pixelSize) + pixelSize/2);
+    
+                    } else {
+                        /*
+                        //Fill cells which don't pass threshold with actual colour
+                        var r = videoPixels[(row*numCols+col)*4];
+                        var g = videoPixels[(row*numCols+col)*4 + 1];
+                        var b = videoPixels[(row*numCols+col)*4 + 2];
+                        var a = 1;
+                        ctx.fillStyle = "rgb("+r+","+g+","+b+","+a+")";
+                        ctx.fillRect(col*pixelSize,row*pixelSize,pixelSize,pixelSize);
+                        */
+                    }
+                }
+
             
             }
             
-
         }
     }
 
 }
 
 function loop(){
-    render(ctx)
-    //const chars = getPixelsGreyScale(ctx)
-    //renderText(textVideo, grayscaleDataArray)
-    renderText();
 
     if (playAnimationToggle){
+        counter++;
+        render(ctx)
+        renderText();
+
+        if(recordVideoState == true){
+            renderCanvasToVideoFrameAndEncode({
+                canvas,
+                videoEncoder,
+                frameNumber,
+                videofps
+            })
+            frameNumber++;
+        }
+
         animationRequest = requestAnimationFrame(loop);
     }
 }
@@ -508,7 +565,7 @@ function hexToRgb(hex) {
     } : null;
 }
 
-
+/*
 //shortcut hotkey presses
 document.addEventListener('keydown', function(event) {
   
@@ -523,6 +580,7 @@ document.addEventListener('keydown', function(event) {
     } 
    
 });
+*/
 
 function saveImage(){
     const link = document.createElement('a');
@@ -626,6 +684,7 @@ async function recordVideoMuxer() {
     //NEW codec: "avc1.42003e",
     //ORIGINAL codec: "avc1.42001f",
 
+    /*
     var frameNumber = 0;
     //setTimeout(finalizeVideo,1000*videoDuration+200); //finish and export video after x seconds
 
@@ -643,6 +702,7 @@ async function recordVideoMuxer() {
             }else{
             }
         } , 1000/videofps);
+    */
 
 }
 
@@ -688,7 +748,7 @@ function downloadBlob() {
     a.style.display = "none";
     a.href = url;
     const date = new Date();
-    const filename = `liquify_${date.toLocaleDateString()}_${date.toLocaleTimeString()}.mp4`;
+    const filename = `ASCII_${date.toLocaleDateString()}_${date.toLocaleTimeString()}.mp4`;
     a.download = filename;
     document.body.appendChild(a);
     a.click();
@@ -734,9 +794,6 @@ setTimeout(function(){
 },500);
 
 }
-  
-  
-  
 
 //MAIN METHOD
 refresh();
