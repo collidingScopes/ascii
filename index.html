@@ -49,10 +49,15 @@
         <canvas id="canvas" class="displayCanvas"></canvas>
         <video id="webcamVideo" class="displayCanvas hidden"></video>
         <video id="userVideo" class="displayCanvas hidden" loop muted></video>
+        <video id="defaultVideo" class="displayCanvas hidden" width="480px" height="848px" loop muted>
+            <source src="assets/waves.mp4" type="video/mp4" />
+        </video>
 
         <canvas id="canvas-video" class="displayCanvas hidden"></canvas>
         <canvas id="canvas-video-pixel" class="displayCanvas hidden"></canvas>
     </div>
+
+
 
     <label for="fileInput" class="custom-file-upload hidden" id="fileInputLabel">
         <i class="fa fa-cloud-upload"></i> Select video

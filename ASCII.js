@@ -1,8 +1,8 @@
 /*
 To do:
-Add video option for "Default Video" that plays on start (use the wave video)
 Add max video size (resize or just scale it down in browser?)
 Allow toggle for different monospace fonts (Japanese, etc.)
+Enable flickering text (text raining down the screen like the matrix)
 Allow gradient background
 can both the original/new video be recorded at the same time? OBS studio otherwise
 Allow image upload, with function to determine based on the file extension and handle accordingly
@@ -11,10 +11,12 @@ Create option to invert the threshold (show black or show white toggle)
 Improve performance by reading video / doing pixel+grayscale in a single canvas
 Add small amount of randomness (colour flickering, letter changing, etc.)
 Change shortcuts so that they don't interfere with the text input (add control to front?)
+Mobile doesn't work (animation doesn't run)
 */
 
 var webcamVideo = document.getElementById('webcamVideo');
 var userVideo = document.getElementById('userVideo');
+var defaultVideo = document.getElementById('defaultVideo');
 
 var canvas = document.getElementById("canvas");
 var ctx = canvas.getContext("2d");
@@ -31,8 +33,12 @@ const ctx3 = canvasPixel.getContext("2d", {
 
 var webcamVideoWidth = 640;
 var webcamVideoHeight = 480;
-var canvasWidth = webcamVideoWidth;
-var canvasHeight = webcamVideoHeight;
+
+var defaultVideoWidth = 480;
+var defaultVideoHeight = 848;
+var canvasWidth = defaultVideoWidth;
+var canvasHeight = defaultVideoHeight;
+
 var pixelSize;
 var numCols;
 var numRows;
@@ -49,13 +55,8 @@ var fontSize;
 ctx.font;
 
 
-
-//var videoTypeInput = document.getElementById("videoTypeInput");
-//var videoType = String(videoTypeInput.value);
-//videoTypeInput.addEventListener("change",changeVideoType);
-
 //const gradient = "_______.:!/r(l1Z4H9W8$@";
-const gradient = "..--<>~~??123456789@@@"; //this defines the character set. ordered by darker to lighter colour. Add more blanks to create more darkness
+const gradient = "__..--<>~~??123456789@@@"; //this defines the character set. ordered by darker to lighter colour. Add more blanks to create more darkness
 const preparedGradient = gradient.replaceAll('_', '\u00A0')
 
 //var textInput = "wavesand";
@@ -100,7 +101,7 @@ var frameNumber = 0;
 
 //add gui
 var obj = {
-    videoType: 'Webcam',
+    videoType: 'Default',
     backgroundColor: "#0b1563",
     fontColor: "#ffffff",
     pixelSizeFactor: 50,
@@ -193,11 +194,55 @@ function togglePausePlay(){
             userVideo.play();
             playAnimationToggle = true;
             animationRequest = requestAnimationFrame(loop);
+        } else if(videoType == "Default"){
+            startDefaultVideo();
         }
     } else {
         stopVideo();
     }
     
+}
+
+function changeVideoType(){
+    stopVideo();
+    videoType = obj.videoType;
+
+    if(videoType == "Webcam"){
+        canvasWidth = webcamVideoWidth;
+        canvasHeight = webcamVideoHeight;
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+        startWebcam();
+    } else if(videoType == "Select Video"){
+        fileInput.click();
+    } else if(videoType == "Default"){
+        startDefaultVideo();
+    }
+
+    refresh();
+
+}
+
+function startDefaultVideo(){
+    if(playAnimationToggle==true){
+        playAnimationToggle = false;
+        cancelAnimationFrame(animationRequest);
+        console.log("cancel animation");
+    }
+
+    userVideo.classList.add("hidden");
+    webcamVideo.classList.add("hidden");
+    defaultVideo.classList.remove("hidden");
+    document.getElementById("fileInputLabel").classList.add("hidden");
+
+    canvasWidth = defaultVideoWidth;
+    canvasHeight = defaultVideoHeight;
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+
+    defaultVideo.play();
+    playAnimationToggle = true;
+    animationRequest = requestAnimationFrame(loop);
 }
 
 function startWebcam() {
@@ -210,6 +255,7 @@ function startWebcam() {
 
     userVideo.classList.add("hidden");
     webcamVideo.classList.remove("hidden");
+    defaultVideo.classList.add("hidden");
     document.getElementById("fileInputLabel").classList.add("hidden");
 
     navigator.mediaDevices.getUserMedia({
@@ -260,6 +306,7 @@ fileInput.addEventListener('change', (e) => {
 
     userVideo.classList.remove("hidden");
     webcamVideo.classList.add("hidden");
+    defaultVideo.classList.add("hidden");
     document.getElementById("fileInputLabel").classList.remove("hidden");
 
     const file = e.target.files[0];
@@ -287,23 +334,6 @@ fileInput.addEventListener('change', (e) => {
 
 });
 
-function changeVideoType(){
-    stopVideo();
-    videoType = obj.videoType;
-
-    if(videoType == "Webcam"){
-        canvasWidth = webcamVideoWidth;
-        canvasHeight = webcamVideoHeight;
-        canvas.width = canvasWidth;
-        canvas.height = canvasHeight;
-        startWebcam();
-    } else if(videoType == "Select Video"){
-        fileInput.click();
-    }
-
-    refresh();
-
-}
 
 const render = (ctx) => {
     if (canvasWidth && canvasHeight) {
@@ -314,7 +344,9 @@ const render = (ctx) => {
             ctx2.drawImage(webcamVideo, 0, 0, canvasWidth, canvasHeight);
         } else if(videoType == "Select Video"){
             ctx2.drawImage(userVideo, 0, 0, canvasWidth, canvasHeight);
-        }
+        }  else if(videoType == "Default"){
+            ctx2.drawImage(defaultVideo, 0, 0, canvasWidth, canvasHeight);
+        } 
 
         var pixelData = ctx2.getImageData(0, 0, canvasWidth, canvasHeight);
         var pixels = pixelData.data;
@@ -797,4 +829,4 @@ setTimeout(function(){
 
 //MAIN METHOD
 refresh();
-startWebcam();
+startDefaultVideo();
