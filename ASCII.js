@@ -27,8 +27,8 @@ const ctx2 = canvasRaw.getContext("2d", {
 const canvasPixel = document.getElementById('canvas-video-pixel')
 const ctx3 = canvasPixel.getContext("2d");
 
-var webcamVideoWidth = 640;
-var webcamVideoHeight = 480;
+var webcamVideoWidth = Math.min(640,Math.floor(window.innerWidth/2));
+var webcamVideoHeight = Math.floor(webcamVideoWidth * 3/4);
 
 var defaultVideoWidth = 480;
 var defaultVideoHeight = 848;
@@ -52,7 +52,7 @@ ctx.font;
 
 
 //const gradient = "_______.:!/r(l1Z4H9W8$@";
-const gradient = "__..--<>~~??123456789@@@"; //this defines the character set. ordered by darker to lighter colour. Add more blanks to create more darkness
+const gradient = "__..--~~<>??123456789@@@"; //this defines the character set. ordered by darker to lighter colour. Add more blanks to create more darkness
 const preparedGradient = gradient.replaceAll('_', '\u00A0')
 
 //var textInput = "wavesand";
@@ -61,6 +61,18 @@ var animationRequest;
 var playAnimationToggle = false;
 var counter = 0;
 var webcamStream;
+
+var mediaRecorder;
+var recordedChunks;
+var finishedBlob;
+var recordingMessageDiv = document.getElementById("videoRecordingMessageDiv");
+var recordVideoState = false;
+var videoRecordInterval;
+var videoEncoder;
+var muxer;
+var mobileRecorder;
+var videofps = 24;
+var frameNumber = 0;
 
 //detect user browser
 var ua = navigator.userAgent;
@@ -81,19 +93,6 @@ if(ua.includes("Android")){
     isAndroid = true;
 }
 console.log("isSafari: "+isSafari+", isFirefox: "+isFirefox+", isIOS: "+isIOS+", isAndroid: "+isAndroid);
-
-var mediaRecorder;
-var recordedChunks;
-var finishedBlob;
-var recordingMessageDiv = document.getElementById("videoRecordingMessageDiv");
-var recordVideoState = false;
-var videoRecordInterval;
-var videoEncoder;
-var muxer;
-var mobileRecorder;
-var videofps = 30;
-var frameNumber = 0;
-
 
 //add gui
 var obj = {
@@ -121,7 +120,9 @@ var textInput = obj.textInput;
 var randomness = obj.randomness/100;
 var invertToggle = obj.invert;
 
-var gui = new dat.gui.GUI({ autoPlace: false });
+//dat.GUI.TEXT_OPEN = "Open Controls (h)";
+//dat.GUI.TEXT_CLOSED = "Close Controls (h)";
+var gui = new dat.gui.GUI({ autoPlace:false });
 gui.close();
 var guiOpenToggle = false;
 
@@ -144,21 +145,32 @@ gui.add(obj, 'selectVideo').name('Select Video');
 obj['pausePlay'] = function () {
 togglePausePlay();
 };
-gui.add(obj, 'pausePlay').name("Pause/Play (p)");
+gui.add(obj, 'pausePlay').name("Pause/Play");
 
 obj['saveImage'] = function () {
 saveImage();
 };
-gui.add(obj, 'saveImage').name("Image Export (i)");
+gui.add(obj, 'saveImage').name("Image Export");
 
 obj['saveVideo'] = function () {
 toggleVideoRecord();
 };
-gui.add(obj, 'saveVideo').name("Start/Stop Video Export (v)");
+gui.add(obj, 'saveVideo').name("Start/Stop Video Export");
 
 customContainer = document.getElementById( 'gui' );
 customContainer.appendChild(gui.domElement);
 
+var guiCloseButton = document.getElementsByClassName("close-button");
+console.log(guiCloseButton.length);
+guiCloseButton[0].addEventListener("click",updateGUIState);
+
+function updateGUIState(){
+    if(guiOpenToggle){
+        guiOpenToggle = false;
+    } else {
+        guiOpenToggle = true;
+    }
+}
 
 function refresh(){
     console.log("refresh");
@@ -169,7 +181,7 @@ function refresh(){
     pixelSize = Math.ceil(Math.min(canvasWidth,canvasHeight)/pixelSizeFactor);
     numCols = Math.ceil(canvasWidth/pixelSize);
     numRows = Math.ceil(canvasHeight/pixelSize);
-    fontSize = pixelSize/0.6;
+    fontSize = pixelSize/0.65;
     ctx.font = fontSize+"px "+fontFamily;
     fontColor = obj.fontColor;
     backgroundColor = obj.backgroundColor;
@@ -449,7 +461,7 @@ function renderText(){
                     //var currentFontSize = Math.floor( (Math.pow(currentGrayValue/255,1)) / (1-adjustedThreshold+0.2) * fontSize );
                     ctx.font = currentFontSize+"px "+fontFamily;
                     ctx.fillStyle = fontColor;
-                    ctx.fillText(char, col*pixelSize + pixelSize/4, row*(pixelSize) + pixelSize/2);
+                    ctx.fillText(char, col*pixelSize, row*(pixelSize) + pixelSize);
                     //ctx.strokeStyle = fontColor;
                     //ctx.strokeText(char, col*pixelSize + pixelSize/4, row*(pixelSize) + pixelSize/2);
 
@@ -465,7 +477,7 @@ function renderText(){
 
                     ctx.font = currentFontSize+"px "+fontFamily;
                     ctx.fillStyle = fontColor;
-                    ctx.fillText(char, col*pixelSize + pixelSize/4, row*(pixelSize) + pixelSize/2);
+                    ctx.fillText(char, col*pixelSize, row*(pixelSize) + pixelSize);
                     //ctx.strokeStyle = fontColor;
                     //ctx.strokeText(char, col*pixelSize + pixelSize/4, row*(pixelSize) + pixelSize/2);
 
@@ -556,13 +568,22 @@ function hexToRgb(hex) {
 //shortcut hotkey presses
 document.addEventListener('keydown', function(event) {
   
-    if(event.key === 'p'){
+    if(event.shiftKey && event.key == 'p'){
         togglePausePlay();
-    } else if (event.key === 'i') {
+    } else if (event.key === 'i' && event.shiftKey) {
         saveImage();
-    } else if (event.key === 'v') {
+    } else if (event.key === 'v' && event.shiftKey) {
         toggleVideoRecord();
-    } else if (event.key === 'o') {
+    } else if (event.key === 'o' && event.shiftKey) {
+        dat.GUI.toggleHide();
+    } 
+   
+});
+
+//shortcut hotkey presses
+document.addEventListener('keydown', function(event) {
+  
+    if(event.key === 'h') {
         toggleGUI();
     } 
    
@@ -580,6 +601,7 @@ function saveImage(){
 }
 
 function toggleGUI(){
+    
     if(guiOpenToggle == false){
         gui.open();
         guiOpenToggle = true;
@@ -587,6 +609,7 @@ function toggleGUI(){
         gui.close();
         guiOpenToggle = false;
     }
+    
 }
 
 function toggleVideoRecord(){

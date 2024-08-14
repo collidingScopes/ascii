@@ -9,13 +9,16 @@ html, body{
     background-color: #320541;
 }
 
+
 #gui {
-    position: fixed;
+    position: absolute;
     top: 0;
+    right: 0;
     background-color: black;
     opacity: 0.9;
     margin: 0;
-    float: right;
+    z-index: 10;
+    /*float: right;*/
 }
 
 .dg {
