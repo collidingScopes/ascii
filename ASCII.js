@@ -4,7 +4,6 @@ Add max video size (resize or just scale it down in browser?)
 Allow toggle for different monospace fonts (Japanese, etc.)
 Enable flickering text (text raining down the screen like the matrix)
 Allow gradient background
-can both the original/new video be recorded at the same time? OBS studio otherwise
 Allow image upload, with function to determine based on the file extension and handle accordingly
 Investigate frame rate unsynced issue when video recording
 Change shortcuts so that they don't interfere with the text input (add control to front?)
@@ -50,7 +49,6 @@ var fontFamily = "Courier New";
 var fontSize;
 ctx.font;
 
-
 //const gradient = "_______.:!/r(l1Z4H9W8$@";
 const gradient = "__..--~~<>??123456789@@@"; //this defines the character set. ordered by darker to lighter colour. Add more blanks to create more darkness
 const preparedGradient = gradient.replaceAll('_', '\u00A0')
@@ -71,7 +69,7 @@ var videoRecordInterval;
 var videoEncoder;
 var muxer;
 var mobileRecorder;
-var videofps = 24;
+var videofps = 12;
 var frameNumber = 0;
 
 //detect user browser
@@ -142,22 +140,22 @@ gui.add(obj, "threshold").min(5).max(95).step(1).name('Threshold').onChange(refr
 gui.add(obj,"invert").name('Invert?').onChange(refresh);
 gui.add(obj, "randomness").min(0).max(100).step(1).name('Randomness').onChange(refresh);
 obj['selectVideo'] = function () {
-fileInput.click();
+    fileInput.click();
 };
 gui.add(obj, 'selectVideo').name('Select Video');
 
 obj['pausePlay'] = function () {
-togglePausePlay();
+    togglePausePlay();
 };
 gui.add(obj, 'pausePlay').name("Pause/Play");
 
 obj['saveImage'] = function () {
-saveImage();
+    saveImage();
 };
 gui.add(obj, 'saveImage').name("Image Export");
 
 obj['saveVideo'] = function () {
-toggleVideoRecord();
+    toggleVideoRecord();
 };
 gui.add(obj, 'saveVideo').name("Start/Stop Video Export");
 
@@ -182,8 +180,8 @@ function refresh(){
     animationType = obj.animationType;
     fontSizeFactor = obj.fontSizeFactor;
     pixelSizeFactor = obj.pixelSizeFactor;
-    pixelSize = Math.ceil(Math.min(canvasWidth,canvasHeight)/pixelSizeFactor);
-    numCols = Math.ceil(canvasWidth/pixelSize);
+    pixelSize = Math.ceil(Math.min(canvasWidth/2,canvasHeight)/pixelSizeFactor);
+    numCols = Math.ceil(canvasWidth /2 /pixelSize);
     numRows = Math.ceil(canvasHeight/pixelSize);
     fontSize = pixelSize/0.65;
     ctx.font = fontSize+"px "+fontFamily;
@@ -197,7 +195,7 @@ function refresh(){
     counter = 0;
     randomness = obj.randomness/100;
     invertToggle = obj.invert;
-    frameNumber = 0;
+    //frameNumber = 0;
 }
 
 function togglePausePlay(){
@@ -224,7 +222,7 @@ function changeVideoType(){
     videoType = obj.videoType;
 
     if(videoType == "Webcam"){
-        canvasWidth = webcamVideoWidth;
+        canvasWidth = webcamVideoWidth*2;
         canvasHeight = webcamVideoHeight;
         canvas.width = canvasWidth;
         canvas.height = canvasHeight;
@@ -246,11 +244,13 @@ function startDefaultVideo(){
         console.log("cancel animation");
     }
 
+    /*
     userVideo.classList.add("hidden");
     webcamVideo.classList.add("hidden");
     defaultVideo.classList.remove("hidden");
+    */
 
-    canvasWidth = defaultVideoWidth;
+    canvasWidth = defaultVideoWidth *2 ;
     canvasHeight = defaultVideoHeight;
     canvas.width = canvasWidth;
     canvas.height = canvasHeight;
@@ -268,9 +268,11 @@ function startWebcam() {
         console.log("cancel animation");
     }
 
+    /*
     userVideo.classList.add("hidden");
     webcamVideo.classList.remove("hidden");
     defaultVideo.classList.add("hidden");
+    */
 
     navigator.mediaDevices.getUserMedia({
         audio: false,
@@ -319,9 +321,11 @@ fileInput.addEventListener('change', (e) => {
         console.log("cancel animation");
     }
 
+    /*
     userVideo.classList.remove("hidden");
     webcamVideo.classList.add("hidden");
     defaultVideo.classList.add("hidden");
+    */
 
     const file = e.target.files[0];
     const url = URL.createObjectURL(file);
@@ -331,7 +335,7 @@ fileInput.addEventListener('change', (e) => {
         userVideo.width = userVideo.videoWidth;
         userVideo.height = userVideo.videoHeight;
 
-        canvasWidth = userVideo.videoWidth;
+        canvasWidth = userVideo.videoWidth *2;
         canvasHeight = userVideo.videoHeight; 
 
         canvas.width = canvasWidth;
@@ -351,23 +355,23 @@ fileInput.addEventListener('change', (e) => {
 
 const render = (ctx) => {
     if (canvasWidth && canvasHeight) {
-        canvasRaw.width = canvasWidth;
+        canvasRaw.width = canvasWidth/2;
         canvasRaw.height = canvasHeight;
 
         //choose video feed
         if(videoType == "Webcam"){
-            ctx2.drawImage(webcamVideo, 0, 0, canvasWidth, canvasHeight);
+            ctx2.drawImage(webcamVideo, 0, 0, canvasWidth/2, canvasHeight);
         } else if(videoType == "Select Video"){
-            ctx2.drawImage(userVideo, 0, 0, canvasWidth, canvasHeight);
+            ctx2.drawImage(userVideo, 0, 0, canvasWidth/2, canvasHeight);
         }  else if(videoType == "Default"){
-            ctx2.drawImage(defaultVideo, 0, 0, canvasWidth, canvasHeight);
+            ctx2.drawImage(defaultVideo, 0, 0, canvasWidth/2, canvasHeight);
         } 
 
-        var pixelData = ctx2.getImageData(0, 0, canvasWidth, canvasHeight);
+        var pixelData = ctx2.getImageData(0, 0, canvasWidth/2, canvasHeight);
         var pixels = pixelData.data;
 
         //new canvas with a pixelated image
-        canvasPixel.width = canvasWidth;
+        canvasPixel.width = canvasWidth/2;
         canvasPixel.height = canvasHeight;
         videoPixels = [];
         grayscaleDataArray = [];
@@ -386,9 +390,9 @@ const render = (ctx) => {
                         var currentXPosition = cellX*pixelSize + pixelX;
                         var currentYPosition = cellY*pixelSize + pixelY;
 
-                        var currentPixelDataValue = (currentYPosition * canvasWidth + currentXPosition) * 4;
+                        var currentPixelDataValue = (currentYPosition * canvasWidth/2 + currentXPosition) * 4;
 
-                        if(currentXPosition < canvasWidth && currentYPosition < canvasHeight){
+                        if(currentXPosition < canvasWidth/2 && currentYPosition < canvasHeight){
                             cellPixels.push(pixels[currentPixelDataValue]);
                             cellPixels.push(pixels[currentPixelDataValue + 1]);
                             cellPixels.push(pixels[currentPixelDataValue + 2]);
@@ -501,6 +505,15 @@ function renderText(){
         
     }
 
+    //draw the chosen video on the right side of the final canvas
+    if(videoType == "Webcam"){
+        ctx.drawImage(webcamVideo, canvasWidth/2, 0, canvasWidth/2, canvasHeight);
+    } else if(videoType == "Select Video"){
+        ctx.drawImage(userVideo, canvasWidth/2, 0, canvasWidth/2, canvasHeight);
+    }  else if(videoType == "Default"){
+        ctx.drawImage(defaultVideo, canvasWidth/2, 0, canvasWidth/2, canvasHeight);
+    } 
+
 }
 
 function loop(){
@@ -510,6 +523,7 @@ function loop(){
         render(ctx)
         renderText();
 
+        /*
         if(recordVideoState == true){
             renderCanvasToVideoFrameAndEncode({
                 canvas,
@@ -519,6 +533,7 @@ function loop(){
             })
             frameNumber++;
         }
+        */
 
         animationRequest = requestAnimationFrame(loop);
     }
@@ -658,6 +673,8 @@ async function recordVideoMuxer() {
     var videoHeight = Math.floor(canvas.height/8)*8; //force a number which is divisible by 8
     console.log("Video dimensions: "+videoWidth+", "+videoHeight);
 
+    frameNumber = 0;
+
     //display user message
     //recordingMessageCountdown(videoDuration);
     recordingMessageDiv.classList.remove("hidden");
@@ -700,7 +717,7 @@ async function recordVideoMuxer() {
         codec: "avc1.42003e",
         width: videoWidth,
         height: videoHeight,
-        bitrate: 4_000_000,
+        bitrate: 8_000_000,
         bitrateMode: "constant",
     });
     //NEW codec: "avc1.42003e",
@@ -709,6 +726,7 @@ async function recordVideoMuxer() {
     /*
     var frameNumber = 0;
     //setTimeout(finalizeVideo,1000*videoDuration+200); //finish and export video after x seconds
+    */
 
     //take a snapshot of the canvas every x miliseconds and encode to video
     videoRecordInterval = setInterval(
@@ -724,7 +742,7 @@ async function recordVideoMuxer() {
             }else{
             }
         } , 1000/videofps);
-    */
+    
 
 }
 
