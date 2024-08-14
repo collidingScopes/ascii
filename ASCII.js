@@ -98,12 +98,13 @@ console.log("isSafari: "+isSafari+", isFirefox: "+isFirefox+", isIOS: "+isIOS+",
 var obj = {
     videoType: 'Default',
     backgroundColor: "#0b1563",
-    fontColor: "#ffffff",
+    backgroundGradient: false,
+    fontColor: "#dbfffd",
     fontSizeFactor: 3,
     pixelSizeFactor: 50,
     threshold: 30,
     textInput: "wavesand",
-    randomness: 20,
+    randomness: 15,
     invert: false,
     animationType: 'Random Text',
 };
@@ -112,9 +113,11 @@ var videoType = obj.videoType;
 var animationType = obj.animationType;
 var backgroundColor = obj.backgroundColor;
 var backgroundHue = getHueFromHex(backgroundColor);
+var backgroundGradient = obj.backgroundGradient;
 var fontSizeFactor = obj.fontSizeFactor;
 var pixelSizeFactor = obj.pixelSizeFactor;
 var fontColor = obj.fontColor;
+var fontHue = getHueFromHex(fontColor);
 var threshold = obj.threshold/100;
 var textInput = obj.textInput;
 var randomness = obj.randomness/100;
@@ -131,6 +134,7 @@ gui.add(obj, 'videoType', [ 'Default', 'Select Video', 'Webcam'] ).name('Video T
 gui.add(obj, 'animationType', [ 'Random Text', 'User Text'] ).name('Text Type').onChange(refresh);
 gui.add(obj, "textInput").onFinishChange(refresh);
 gui.addColor(obj, "backgroundColor").name("Background Color").onFinishChange(refresh);
+gui.add(obj,"backgroundGradient").name('Bg Gradient?').onChange(refresh);
 gui.addColor(obj, "fontColor").name("Font Color").onFinishChange(refresh);
 gui.add(obj, "fontSizeFactor").min(1).max(20).step(1).name('Font Size Factor').onChange(refresh);
 gui.add(obj, "pixelSizeFactor").min(10).max(150).step(1).name('Resolution').onChange(refresh);
@@ -184,7 +188,9 @@ function refresh(){
     fontSize = pixelSize/0.65;
     ctx.font = fontSize+"px "+fontFamily;
     fontColor = obj.fontColor;
+    fontHue = getHueFromHex(fontColor);
     backgroundColor = obj.backgroundColor;
+    backgroundGradient = obj.backgroundGradient;
     backgroundHue = getHueFromHex(backgroundColor);
     threshold = obj.threshold/100;
     textInput = obj.textInput;
@@ -427,13 +433,35 @@ function renderText(){
     for(var row=0; row<numRows; row++){
         for(var col=0; col<numCols; col++){
             
-            var currentGrayValue = grayscaleDataArray[row][col];
             var adjustedThreshold = threshold + (0.25 * Math.sin(counter/30) * randomness);
+            var currentGrayValue = grayscaleDataArray[row][col];
+            
             var currentBackgroundColor = "hsl("+backgroundHue+",80%,"+Math.pow(currentGrayValue/255,2)*100+"%)";
             var currentBackgroundColorInvert = "hsl("+backgroundHue+",80%,"+(1-Math.pow(currentGrayValue/255,2))*100+"%)";
+            
             var char;
-            var currentFontSize = fontSize * fontSizeFactor/3;
+            var currentFontSize = Math.min(fontSize*3, fontSize * fontSizeFactor/3);
 
+            ctx.fillStyle = backgroundColor;
+            //draw background color of pixels
+            if(backgroundGradient){
+                if(invertToggle == false){
+                    if(currentGrayValue/255 > adjustedThreshold){
+                        ctx.fillStyle = currentBackgroundColor;
+                    } else {
+                        ctx.fillStyle = "hsl("+backgroundHue+",80%,"+adjustedThreshold/4*100+"%)";
+                    }
+                } else {
+                    if(currentGrayValue/255 < (1-adjustedThreshold)){
+                        ctx.fillStyle = currentBackgroundColorInvert;
+                    }
+                }
+            } else {
+                ctx.fillStyle = backgroundColor;
+            }
+
+            ctx.fillRect(col*pixelSize,row*pixelSize,pixelSize,pixelSize);
+            
             //choose text character to draw
             if(Math.random()<0.005*randomness){
                 char = preparedGradient[Math.floor(Math.random()*preparedGradient.length)]; //draw random char
@@ -444,47 +472,31 @@ function renderText(){
                 currentFontSize = Math.min(fontSize*3, Math.floor( (Math.pow(currentGrayValue/255,2)) * fontSizeFactor/3 * fontSize ));
             }
 
+            //draw text onto canvas
+            ctx.font = currentFontSize+"px "+fontFamily;
+            //ctx.fillStyle = fontColor;
+            ctx.fillStyle = "hsl("+fontHue+",80%,"+currentGrayValue/255*100+"%)";
             if(invertToggle == false){
                 if(currentGrayValue/255 > adjustedThreshold){
-                    ctx.fillStyle = currentBackgroundColor;
-                    ctx.fillRect(col*pixelSize,row*pixelSize,pixelSize,pixelSize);
-
-                    /*
-                    var r = videoPixels[(row*numCols+col)*4];
-                    var g = videoPixels[(row*numCols+col)*4 + 1];
-                    var b = videoPixels[(row*numCols+col)*4 + 2];
-                    var a = 1;
-                    ctx.fillStyle = "rgb("+r+","+g+","+b+","+a+")";
-                    ctx.fillRect(col*pixelSize,row*pixelSize,pixelSize,pixelSize);
-                    */
-
-                    //var currentFontSize = Math.floor( (Math.pow(currentGrayValue/255,1)) / (1-adjustedThreshold+0.2) * fontSize );
-                    ctx.font = currentFontSize+"px "+fontFamily;
-                    ctx.fillStyle = fontColor;
                     ctx.fillText(char, col*pixelSize, row*(pixelSize) + pixelSize);
                     //ctx.strokeStyle = fontColor;
                     //ctx.strokeText(char, col*pixelSize + pixelSize/4, row*(pixelSize) + pixelSize/2);
-
-                } else {
-                    ctx.fillStyle = "hsl("+backgroundHue+",80%,"+adjustedThreshold/4*100+"%)";
-                    ctx.fillRect(col*pixelSize,row*pixelSize,pixelSize,pixelSize);
-                   
                 }
             } else {
                 if(currentGrayValue/255 < (1-adjustedThreshold)){
-                    ctx.fillStyle = currentBackgroundColorInvert;
-                    ctx.fillRect(col*pixelSize,row*pixelSize,pixelSize,pixelSize);
-
-                    ctx.font = currentFontSize+"px "+fontFamily;
-                    ctx.fillStyle = fontColor;
                     ctx.fillText(char, col*pixelSize, row*(pixelSize) + pixelSize);
-                    //ctx.strokeStyle = fontColor;
-                    //ctx.strokeText(char, col*pixelSize + pixelSize/4, row*(pixelSize) + pixelSize/2);
-
-                } else {
-
                 }
-            }            
+            }
+            
+            /*
+            var r = videoPixels[(row*numCols+col)*4];
+            var g = videoPixels[(row*numCols+col)*4 + 1];
+            var b = videoPixels[(row*numCols+col)*4 + 2];
+            var a = 1;
+            ctx.fillStyle = "rgb("+r+","+g+","+b+","+a+")";
+            ctx.fillRect(col*pixelSize,row*pixelSize,pixelSize,pixelSize);
+            */
+
         }
         
     }
