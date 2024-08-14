@@ -31,7 +31,7 @@ var webcamVideoHeight = Math.floor(webcamVideoWidth * 3/4);
 
 var defaultVideoWidth = 480;
 var defaultVideoHeight = 848;
-var canvasWidth = defaultVideoWidth;
+var canvasWidth = defaultVideoWidth * 2;
 var canvasHeight = defaultVideoHeight;
 
 var pixelSize;
@@ -518,6 +518,9 @@ function renderText(){
 
 function loop(){
 
+    if(counter==0){
+        console.log("start animation, first frame");
+    }
     if (playAnimationToggle){
         counter++;
         render(ctx)
