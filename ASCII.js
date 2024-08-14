@@ -7,11 +7,9 @@ Allow gradient background
 can both the original/new video be recorded at the same time? OBS studio otherwise
 Allow image upload, with function to determine based on the file extension and handle accordingly
 Investigate frame rate unsynced issue when video recording
-Create option to invert the threshold (show black or show white toggle)
-Improve performance by reading video / doing pixel+grayscale in a single canvas
-Add small amount of randomness (colour flickering, letter changing, etc.)
 Change shortcuts so that they don't interfere with the text input (add control to front?)
 Mobile doesn't work (animation doesn't run)
+GUI to control background type (solid color, gradient, based on video, etc.)
 */
 
 var webcamVideo = document.getElementById('webcamVideo');
@@ -102,6 +100,7 @@ var obj = {
     videoType: 'Default',
     backgroundColor: "#0b1563",
     fontColor: "#ffffff",
+    fontSizeFactor: 3,
     pixelSizeFactor: 50,
     threshold: 30,
     textInput: "wavesand",
@@ -114,6 +113,7 @@ var videoType = obj.videoType;
 var animationType = obj.animationType;
 var backgroundColor = obj.backgroundColor;
 var backgroundHue = getHueFromHex(backgroundColor);
+var fontSizeFactor = obj.fontSizeFactor;
 var pixelSizeFactor = obj.pixelSizeFactor;
 var fontColor = obj.fontColor;
 var threshold = obj.threshold/100;
@@ -131,12 +131,11 @@ gui.add(obj, 'animationType', [ 'Random Text', 'User Text'] ).name('Text Type').
 gui.add(obj, "textInput").onFinishChange(refresh);
 gui.addColor(obj, "backgroundColor").name("Background Color").onFinishChange(refresh);
 gui.addColor(obj, "fontColor").name("Font Color").onFinishChange(refresh);
+gui.add(obj, "fontSizeFactor").min(1).max(20).step(1).name('Font Size Factor').onChange(refresh);
 gui.add(obj, "pixelSizeFactor").min(10).max(150).step(1).name('Resolution').onChange(refresh);
 gui.add(obj, "threshold").min(5).max(95).step(1).name('Threshold').onChange(refresh);
 gui.add(obj,"invert").name('Invert?').onChange(refresh);
 gui.add(obj, "randomness").min(0).max(100).step(1).name('Randomness').onChange(refresh);
-
-
 obj['selectVideo'] = function () {
 fileInput.click();
 };
@@ -165,6 +164,7 @@ function refresh(){
     console.log("refresh");
     console.log("canvas width/height: "+canvasWidth+", "+canvasHeight);
     animationType = obj.animationType;
+    fontSizeFactor = obj.fontSizeFactor;
     pixelSizeFactor = obj.pixelSizeFactor;
     pixelSize = Math.ceil(Math.min(canvasWidth,canvasHeight)/pixelSizeFactor);
     numCols = Math.ceil(canvasWidth/pixelSize);
@@ -336,6 +336,7 @@ const render = (ctx) => {
         canvasRaw.width = canvasWidth;
         canvasRaw.height = canvasHeight;
 
+        //choose video feed
         if(videoType == "Webcam"){
             ctx2.drawImage(webcamVideo, 0, 0, canvasWidth, canvasHeight);
         } else if(videoType == "Select Video"){
@@ -415,20 +416,25 @@ function renderText(){
         for(var col=0; col<numCols; col++){
             
             var currentGrayValue = grayscaleDataArray[row][col];
-            var adjustedThreshold = threshold + (0.5 * Math.sin(counter/30) * randomness);
+            var adjustedThreshold = threshold + (0.25 * Math.sin(counter/30) * randomness);
+            var currentBackgroundColor = "hsl("+backgroundHue+",80%,"+Math.pow(currentGrayValue/255,2)*100+"%)";
+            var currentBackgroundColorInvert = "hsl("+backgroundHue+",80%,"+(1-Math.pow(currentGrayValue/255,2))*100+"%)";
             var char;
-            var currentFontSize = fontSize;
+            var currentFontSize = fontSize * fontSizeFactor/3;
 
-            if(animationType == "Random Text"){
+            //choose text character to draw
+            if(Math.random()<0.005*randomness){
+                char = preparedGradient[Math.floor(Math.random()*preparedGradient.length)]; //draw random char
+            } else if(animationType == "Random Text"){
                 char = getCharByScale(currentGrayValue);
             } else if(animationType == "User Text"){
                 char = textInput[(row*numCols+col)%textInput.length];
-                currentFontSize = Math.min(fontSize, Math.floor( (Math.pow(currentGrayValue/255,2)) * 4 * fontSize ));
+                currentFontSize = Math.min(fontSize*3, Math.floor( (Math.pow(currentGrayValue/255,2)) * fontSizeFactor/3 * fontSize ));
             }
 
             if(invertToggle == false){
                 if(currentGrayValue/255 > adjustedThreshold){
-                    ctx.fillStyle = "hsl("+backgroundHue+",80%,"+Math.pow(currentGrayValue/255,2)*100+"%)";
+                    ctx.fillStyle = currentBackgroundColor;
                     ctx.fillRect(col*pixelSize,row*pixelSize,pixelSize,pixelSize);
 
                     /*
@@ -442,10 +448,10 @@ function renderText(){
 
                     //var currentFontSize = Math.floor( (Math.pow(currentGrayValue/255,1)) / (1-adjustedThreshold+0.2) * fontSize );
                     ctx.font = currentFontSize+"px "+fontFamily;
-                    //ctx.fillStyle = fontColor;
-                    //ctx.fillText(char, col*pixelSize + pixelSize/4, row*(pixelSize) + pixelSize/2);
-                    ctx.strokeStyle = fontColor;
-                    ctx.strokeText(char, col*pixelSize + pixelSize/4, row*(pixelSize) + pixelSize/2);
+                    ctx.fillStyle = fontColor;
+                    ctx.fillText(char, col*pixelSize + pixelSize/4, row*(pixelSize) + pixelSize/2);
+                    //ctx.strokeStyle = fontColor;
+                    //ctx.strokeText(char, col*pixelSize + pixelSize/4, row*(pixelSize) + pixelSize/2);
 
                 } else {
                     ctx.fillStyle = "hsl("+backgroundHue+",80%,"+adjustedThreshold/4*100+"%)";
@@ -454,7 +460,7 @@ function renderText(){
                 }
             } else {
                 if(currentGrayValue/255 < (1-adjustedThreshold)){
-                    ctx.fillStyle = "hsl("+backgroundHue+",80%,"+Math.pow(currentGrayValue/255,2)*100+"%)";
+                    ctx.fillStyle = currentBackgroundColorInvert;
                     ctx.fillRect(col*pixelSize,row*pixelSize,pixelSize,pixelSize);
 
                     ctx.font = currentFontSize+"px "+fontFamily;
