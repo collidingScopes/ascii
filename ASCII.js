@@ -3,12 +3,21 @@ To do:
 Add max video size (resize or just scale it down in browser?)
 Allow toggle for different monospace fonts (Japanese, etc.)
 Enable flickering text (text raining down the screen like the matrix)
+Try using luminosity or edge detection instead of lightness values
 Allow gradient background
 Allow image upload, with function to determine based on the file extension and handle accordingly
 Investigate frame rate unsynced issue when video recording
+Video export can have dropped frames / uneven time / low quality
 Change shortcuts so that they don't interfere with the text input (add control to front?)
-Mobile doesn't work (animation doesn't run)
-GUI to control background type (solid color, gradient, based on video, etc.)
+GUI to control background type (solid color, gradient, based on video, etc.)\
+GUI needs to be dynamic and show/hide values based on user choices (e.g., select video button)
+Mobile:
+- Need to get webcam dimensions dynamically and use that instead
+- Default video is too wide? Need to resize video or screen upon startup?
+- Select Video dropdown doesn't work -- need to click the button as well
+Create video based on the scanLines threshold tween effect as input
+Font size tweak for fixed text (smaller for regular, larger font for invert)
+Single width text with a slider for % of the canvas that has the effect turned on (effect left, video right)
 */
 
 var webcamVideo = document.getElementById('webcamVideo');
@@ -31,7 +40,7 @@ var webcamVideoHeight = Math.floor(webcamVideoWidth * 3/4);
 
 var defaultVideoWidth = 480;
 var defaultVideoHeight = 848;
-var canvasWidth = defaultVideoWidth * 2;
+var canvasWidth = defaultVideoWidth;
 var canvasHeight = defaultVideoHeight;
 
 var pixelSize;
@@ -49,9 +58,14 @@ var fontFamily = "Courier New";
 var fontSize;
 ctx.font;
 
+ //this defines the character set. ordered by darker to lighter colour
 //const gradient = "_______.:!/r(l1Z4H9W8$@";
-const gradient = "__..--~~<>??123456789@@@"; //this defines the character set. ordered by darker to lighter colour. Add more blanks to create more darkness
+//const gradient = "__..--~~<>??123456789@@@";
+const gradient =  "`.-':_,^=;><+!rc*/z?sLTv)J7(|Fi{C}fI31tlu[neoZ5Yxjya]2ESwqkP6h9d4VpOGbUAKXHm8RD#$Bg0MNWQ%&@ `.-':_,^=;><+!rc*/z?sLTv)J7(|Fi{C}fI31tlu[neoZ5Yxjya]2ESwqkP6h9d4VpOGbUAKXHm8RD#$Bg0MNWQ%&@"
 const preparedGradient = gradient.replaceAll('_', '\u00A0')
+
+var randomColumnArray = [];
+var startingRowArray = [];
 
 //var textInput = "wavesand";
 //var textInput = "♫♪iPod"
@@ -95,6 +109,7 @@ console.log("isSafari: "+isSafari+", isFirefox: "+isFirefox+", isIOS: "+isIOS+",
 //add gui
 var obj = {
     videoType: 'Default',
+    effectWidth: 50,
     backgroundColor: "#0b1563",
     backgroundGradient: false,
     fontColor: "#dbfffd",
@@ -108,6 +123,7 @@ var obj = {
 };
 
 var videoType = obj.videoType;
+var effectWidth = obj.effectWidth/100;
 var animationType = obj.animationType;
 var backgroundColor = obj.backgroundColor;
 var backgroundHue = getHueFromHex(backgroundColor);
@@ -129,6 +145,7 @@ var guiOpenToggle = false;
 
 // Choose from accepted values
 gui.add(obj, 'videoType', [ 'Default', 'Select Video', 'Webcam'] ).name('Video Type').onChange(changeVideoType);
+gui.add(obj, "effectWidth").min(0).max(100).step(1).name('Effect Width %').onChange(refresh);
 gui.add(obj, 'animationType', [ 'Random Text', 'User Text'] ).name('Text Type').onChange(refresh);
 gui.add(obj, "textInput").onFinishChange(refresh);
 gui.addColor(obj, "backgroundColor").name("Background Color").onFinishChange(refresh);
@@ -178,11 +195,12 @@ function refresh(){
     console.log("refresh");
     console.log("canvas width/height: "+canvasWidth+", "+canvasHeight);
     animationType = obj.animationType;
+    effectWidth = obj.effectWidth/100;
     fontSizeFactor = obj.fontSizeFactor;
     pixelSizeFactor = obj.pixelSizeFactor;
-    pixelSize = Math.ceil(Math.min(canvasWidth/2,canvasHeight)/pixelSizeFactor);
-    numCols = Math.ceil(canvasWidth /2 /pixelSize);
-    numRows = Math.ceil(canvasHeight/pixelSize);
+    pixelSize = Math.ceil(Math.min(canvasWidth,canvasHeight)/pixelSizeFactor);
+    numCols = Math.ceil(Math.ceil(canvasWidth / pixelSize) * effectWidth);
+    numRows = Math.ceil(canvasHeight / pixelSize);
     fontSize = pixelSize/0.65;
     ctx.font = fontSize+"px "+fontFamily;
     fontColor = obj.fontColor;
@@ -196,6 +214,17 @@ function refresh(){
     randomness = obj.randomness/100;
     invertToggle = obj.invert;
     //frameNumber = 0;
+    randomColumnArray = [];
+    startingRowArray = [];
+
+    for(var i=0; i<numCols; i++){
+        if(Math.random() < randomness){
+            randomColumnArray[i] = true;
+            startingRowArray[i] = Math.floor( Math.random() * numRows );
+        } else {
+            randomColumnArray[i] = false;
+        }
+    }
 }
 
 function togglePausePlay(){
@@ -222,7 +251,7 @@ function changeVideoType(){
     videoType = obj.videoType;
 
     if(videoType == "Webcam"){
-        canvasWidth = webcamVideoWidth*2;
+        canvasWidth = webcamVideoWidth;
         canvasHeight = webcamVideoHeight;
         canvas.width = canvasWidth;
         canvas.height = canvasHeight;
@@ -250,7 +279,7 @@ function startDefaultVideo(){
     defaultVideo.classList.remove("hidden");
     */
 
-    canvasWidth = defaultVideoWidth *2 ;
+    canvasWidth = defaultVideoWidth;
     canvasHeight = defaultVideoHeight;
     canvas.width = canvasWidth;
     canvas.height = canvasHeight;
@@ -335,7 +364,7 @@ fileInput.addEventListener('change', (e) => {
         userVideo.width = userVideo.videoWidth;
         userVideo.height = userVideo.videoHeight;
 
-        canvasWidth = userVideo.videoWidth *2;
+        canvasWidth = userVideo.videoWidth;
         canvasHeight = userVideo.videoHeight; 
 
         canvas.width = canvasWidth;
@@ -355,23 +384,23 @@ fileInput.addEventListener('change', (e) => {
 
 const render = (ctx) => {
     if (canvasWidth && canvasHeight) {
-        canvasRaw.width = canvasWidth/2;
+        canvasRaw.width = canvasWidth;
         canvasRaw.height = canvasHeight;
 
         //choose video feed
         if(videoType == "Webcam"){
-            ctx2.drawImage(webcamVideo, 0, 0, canvasWidth/2, canvasHeight);
+            ctx2.drawImage(webcamVideo, 0, 0, canvasWidth, canvasHeight);
         } else if(videoType == "Select Video"){
-            ctx2.drawImage(userVideo, 0, 0, canvasWidth/2, canvasHeight);
+            ctx2.drawImage(userVideo, 0, 0, canvasWidth, canvasHeight);
         }  else if(videoType == "Default"){
-            ctx2.drawImage(defaultVideo, 0, 0, canvasWidth/2, canvasHeight);
+            ctx2.drawImage(defaultVideo, 0, 0, canvasWidth, canvasHeight);
         } 
 
-        var pixelData = ctx2.getImageData(0, 0, canvasWidth/2, canvasHeight);
+        var pixelData = ctx2.getImageData(0, 0, canvasWidth, canvasHeight);
         var pixels = pixelData.data;
 
         //new canvas with a pixelated image
-        canvasPixel.width = canvasWidth/2;
+        canvasPixel.width = canvasWidth;
         canvasPixel.height = canvasHeight;
         videoPixels = [];
         grayscaleDataArray = [];
@@ -390,9 +419,9 @@ const render = (ctx) => {
                         var currentXPosition = cellX*pixelSize + pixelX;
                         var currentYPosition = cellY*pixelSize + pixelY;
 
-                        var currentPixelDataValue = (currentYPosition * canvasWidth/2 + currentXPosition) * 4;
+                        var currentPixelDataValue = (currentYPosition * canvasWidth + currentXPosition) * 4;
 
-                        if(currentXPosition < canvasWidth/2 && currentYPosition < canvasHeight){
+                        if(currentXPosition < canvasWidth && currentYPosition < canvasHeight){
                             cellPixels.push(pixels[currentPixelDataValue]);
                             cellPixels.push(pixels[currentPixelDataValue + 1]);
                             cellPixels.push(pixels[currentPixelDataValue + 2]);
@@ -411,7 +440,7 @@ const render = (ctx) => {
                 //videoPixels.push(avgColor[2]);
                 //videoPixels.push(alpha);
 
-                var grayScaleValue = (avgColor[0]+avgColor[1]+avgColor[2])/3;
+                var grayScaleValue = (0.299*avgColor[0] + 0.587*avgColor[1] + 0.114*avgColor[2]); //perceived luminosity value
                 grayscaleDataArray[cellY][cellX] = grayScaleValue;
 
             }
@@ -430,14 +459,25 @@ const getCharByScale = (scale) => {
 
 function renderText(){
     
-    ctx.fillStyle = backgroundColor;
-    ctx.fillRect(0,0,canvasWidth,canvasHeight);
+    //ctx.fillStyle = backgroundColor;
+    //ctx.fillRect(0,0,canvasWidth/2,canvasHeight);
     ctx.fillStyle = fontColor;
 
-    for(var row=0; row<numRows; row++){
-        for(var col=0; col<numCols; col++){
+    for(var col=0; col<numCols; col++){
+        
+        
+        //var randomColumn = false;
+        //var startingRow = Math.floor(Math.random()*numRows);
+        /*
+        if(Math.random() < 1*randomness){
+            randomColumn = true;
+        }
+        */
+
+        for(var row=0; row<numRows; row++){
             
-            var adjustedThreshold = threshold + (0.25 * Math.sin(counter/30) * randomness);
+            //var adjustedThreshold = threshold + (0.25 * Math.sin(counter/30) * randomness);
+            var adjustedThreshold = threshold; 
             var currentGrayValue = grayscaleDataArray[row][col];
             
             var currentBackgroundColor = "hsl("+backgroundHue+",80%,"+Math.pow(currentGrayValue/255,2)*100+"%)";
@@ -447,6 +487,7 @@ function renderText(){
             var currentFontSize = Math.min(fontSize*3, fontSize * fontSizeFactor/3);
 
             ctx.fillStyle = backgroundColor;
+            
             //draw background color of pixels
             if(backgroundGradient){
                 if(invertToggle == false){
@@ -463,11 +504,18 @@ function renderText(){
             } else {
                 ctx.fillStyle = backgroundColor;
             }
-
             ctx.fillRect(col*pixelSize,row*pixelSize,pixelSize,pixelSize);
             
             //choose text character to draw
-            if(Math.random()<0.005*randomness){
+            if(randomColumnArray[col]){
+                //if((counter % (numRows+startingRowArray[col])) > row){
+                if( (((counter+startingRowArray[col]) % 100)/100*numRows) > row){
+                    //char = preparedGradient[Math.floor(Math.random()*preparedGradient.length)]; //draw random char
+                    char = getCharByScale(currentGrayValue);
+                } else {
+                    char = "";
+                }
+            } else if(Math.random()<0.005*randomness){
                 char = preparedGradient[Math.floor(Math.random()*preparedGradient.length)]; //draw random char
             } else if(animationType == "Random Text"){
                 char = getCharByScale(currentGrayValue);
@@ -505,15 +553,6 @@ function renderText(){
         
     }
 
-    //draw the chosen video on the right side of the final canvas
-    if(videoType == "Webcam"){
-        ctx.drawImage(webcamVideo, canvasWidth/2, 0, canvasWidth/2, canvasHeight);
-    } else if(videoType == "Select Video"){
-        ctx.drawImage(userVideo, canvasWidth/2, 0, canvasWidth/2, canvasHeight);
-    }  else if(videoType == "Default"){
-        ctx.drawImage(defaultVideo, canvasWidth/2, 0, canvasWidth/2, canvasHeight);
-    } 
-
 }
 
 function loop(){
@@ -524,9 +563,20 @@ function loop(){
     if (playAnimationToggle){
         counter++;
         render(ctx)
+
+        //draw the chosen video onto the final canvas
+        if(videoType == "Webcam"){
+            ctx.drawImage(webcamVideo, 0, 0, canvasWidth, canvasHeight);
+        } else if(videoType == "Select Video"){
+            ctx.drawImage(userVideo, 0, 0, canvasWidth, canvasHeight);
+        }  else if(videoType == "Default"){
+            ctx.drawImage(defaultVideo, 0, 0, canvasWidth, canvasHeight);
+        }
+
         renderText();
 
-        /*
+
+        
         if(recordVideoState == true){
             renderCanvasToVideoFrameAndEncode({
                 canvas,
@@ -536,7 +586,7 @@ function loop(){
             })
             frameNumber++;
         }
-        */
+        
 
         animationRequest = requestAnimationFrame(loop);
     }
@@ -720,7 +770,7 @@ async function recordVideoMuxer() {
         codec: "avc1.42003e",
         width: videoWidth,
         height: videoHeight,
-        bitrate: 8_000_000,
+        bitrate: 10_000_000,
         bitrateMode: "constant",
     });
     //NEW codec: "avc1.42003e",
@@ -731,6 +781,7 @@ async function recordVideoMuxer() {
     //setTimeout(finalizeVideo,1000*videoDuration+200); //finish and export video after x seconds
     */
 
+    /*
     //take a snapshot of the canvas every x miliseconds and encode to video
     videoRecordInterval = setInterval(
         function(){
@@ -745,6 +796,7 @@ async function recordVideoMuxer() {
             }else{
             }
         } , 1000/videofps);
+    */
     
 
 }
