@@ -214,6 +214,7 @@ function updateGUIState(){
 function refresh(){
     console.log("refresh");
     console.log("canvas width/height: "+canvasWidth+", "+canvasHeight);
+
     animationType = obj.animationType;
     effectWidth = obj.effectWidth/100;
     fontSizeFactor = obj.fontSizeFactor;
@@ -347,8 +348,8 @@ function startWebcam() {
         window.localStream = stream;
         webcamVideo.srcObject = stream;
         webcamVideo.play();
-        if(stream.getVideoTracks()[0].getSettings().aspectRatio == undefined){
-            webcamAspectRatio = window.innerWidth / window.innerHeight;
+        if(isIOS || isAndroid){
+            webcamAspectRatio = 3/4;
         } else {
             webcamAspectRatio = stream.getVideoTracks()[0].getSettings().aspectRatio;
         }
