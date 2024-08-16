@@ -34,8 +34,14 @@ const ctx2 = canvasRaw.getContext("2d", {
 const canvasPixel = document.getElementById('canvas-video-pixel')
 const ctx3 = canvasPixel.getContext("2d");
 
-var webcamVideoWidth = Math.min(640,Math.floor(window.innerWidth/2));
+/*
+var webcamVideoWidth = Math.min(640,Math.floor(window.innerWidth));
 var webcamVideoHeight = Math.floor(webcamVideoWidth * 3/4);
+*/
+
+var webcamAspectRatio = 1.333333; //width: 640px, height: 480px
+var resizedWebcamWidth = Math.min(1080,Math.floor(window.innerWidth));
+var resizedWebcamHeight = Math.round(resizedWebcamWidth / webcamAspectRatio);
 
 var defaultVideoWidth = 480;
 var defaultVideoHeight = 848;
@@ -60,7 +66,8 @@ ctx.font;
  //this defines the character set. ordered by darker to lighter colour
 //const gradient = "_______.:!/r(l1Z4H9W8$@";
 //const gradient = "__..--~~<>??123456789@@@";
-const gradient =  "`.-':_,^=;><+!rc*/z?sLTv)J7(|Fi{C}fI31tlu[neoZ5Yxjya]2ESwqkP6h9d4VpOGbUAKXHm8RD#$Bg0MNWQ%&@ `.-':_,^=;><+!rc*/z?sLTv)J7(|Fi{C}fI31tlu[neoZ5Yxjya]2ESwqkP6h9d4VpOGbUAKXHm8RD#$Bg0MNWQ%&@"
+//const gradient =  "`.-':_,^=;><+!rc*/z?sLTv)J7(|Fi{C}fI31tlu[neoZ5Yxjya]2ESwqkP6h9d4VpOGbUAKXHm8RD#$Bg0MNWQ%&@"
+const gradient =  "`.-':_,^=;<+!rc*/z?sTv7(|Fi{C}fI31tu[neoZ5xjya]2EwqkP6h94VpOGbUKXHm8R#$Bg0NW%&@"
 const preparedGradient = gradient.replaceAll('_', '\u00A0')
 
 var randomColumnArray = [];
@@ -82,7 +89,7 @@ var videoRecordInterval;
 var videoEncoder;
 var muxer;
 var mobileRecorder;
-var videofps = 12;
+var videofps = 10;
 var frameNumber = 0;
 
 //detect user browser
@@ -111,7 +118,7 @@ var obj = {
     effectWidth: 50,
     backgroundColor: "#080c37",
     backgroundGradient: false,
-    backgroundSaturation: 100,
+    backgroundSaturation: 60,
     fontColor: "#c7205b",
     fontColor2: "#0032ff",
     fontSizeFactor: 3,
@@ -162,7 +169,7 @@ gui.addColor(obj, "fontColor").name("Font Color").onFinishChange(refresh);
 gui.addColor(obj, "fontColor2").name("Font Color2").onFinishChange(refresh);
 
 gui.add(obj, "fontSizeFactor").min(0).max(10).step(1).name('Font Size Factor').onChange(refresh);
-gui.add(obj, "pixelSizeFactor").min(10).max(150).step(1).name('Resolution').onChange(refresh);
+gui.add(obj, "pixelSizeFactor").min(10).max(200).step(1).name('Resolution').onChange(refresh);
 gui.add(obj, "threshold").min(5).max(95).step(1).name('Threshold').onChange(refresh);
 gui.add(obj,"invert").name('Invert?').onChange(refresh);
 gui.add(obj, "randomness").min(0).max(100).step(1).name('Randomness').onChange(refresh);
@@ -267,11 +274,16 @@ function changeVideoType(){
     videoType = obj.videoType;
 
     if(videoType == "Webcam"){
-        canvasWidth = webcamVideoWidth;
-        canvasHeight = webcamVideoHeight;
+
+        startWebcam();
+
+        /*
+        canvasWidth = resizedWebcamWidth;
+        canvasHeight = resizedWebcamHeight;
         canvas.width = canvasWidth;
         canvas.height = canvasHeight;
-        startWebcam();
+        */
+
     } else if(videoType == "Select Video"){
         fileInput.click();
     } else if(videoType == "Default"){
@@ -327,12 +339,23 @@ function startWebcam() {
         window.localStream = stream;
         webcamVideo.srcObject = stream;
         webcamVideo.play();
+        webcamAspectRatio = stream.getVideoTracks()[0].getSettings().aspectRatio;
+        console.log("Aspect Ratio: "+webcamAspectRatio);
     })
     .catch((err) => {
         console.log(err);
     });
 
     playAnimationToggle = true;
+
+    resizedWebcamWidth = Math.min(1080,Math.floor(window.innerWidth));
+    resizedWebcamHeight = Math.round(resizedWebcamWidth / webcamAspectRatio);
+
+    canvasWidth = resizedWebcamWidth;
+    canvasHeight = resizedWebcamHeight;
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+
     animationRequest = requestAnimationFrame(loop);
 
 }
@@ -489,7 +512,10 @@ function renderText(){
             var currentFontSize = Math.min(fontSize*3, fontSize * fontSizeFactor/3);
             
             //draw background color of pixels
-            if(backgroundGradient){
+            if(counter%8==0 && Math.random() < randomness*0.002){
+                ctx.fillStyle = tweakHexColor(backgroundColor,100*randomness);
+                ctx.fillRect(col*pixelSize,row*pixelSize,pixelSize,pixelSize);
+            } else if(backgroundGradient){
 
                 var currentBackgroundColor = "hsl("+backgroundHue+","+backgroundSaturation+"%,"+Math.pow(currentGrayValue/255,2)*100+"%)";
                 var currentBackgroundColorInvert = "hsl("+backgroundHue+","+backgroundSaturation+"%,"+(1-Math.pow(currentGrayValue/255,2))*100+"%)";
@@ -560,7 +586,7 @@ function renderText(){
             } else {
                 if(currentGrayValue/255 < (1-adjustedThreshold)){
                     
-                    ctx.fillStyle = interpolateHex(fontColor,fontColor2,(currentGrayValue/255) / (1-adjustedThreshold))                                        
+                    ctx.fillStyle = interpolateHex(fontColor2,fontColor,(currentGrayValue/255) / (1-adjustedThreshold))                                        
                     ctx.fillText(char, col*pixelSize, row*(pixelSize) + pixelSize);
                 }
             }
@@ -580,13 +606,15 @@ function loop(){
         counter++;
         render(ctx)
 
-        //draw the chosen video onto the final canvas
-        if(videoType == "Webcam"){
-            ctx.drawImage(webcamVideo, 0, 0, canvasWidth, canvasHeight);
-        } else if(videoType == "Select Video"){
-            ctx.drawImage(userVideo, 0, 0, canvasWidth, canvasHeight);
-        }  else if(videoType == "Default"){
-            ctx.drawImage(defaultVideo, 0, 0, canvasWidth, canvasHeight);
+        if(effectWidth < 1){
+            //draw the chosen video onto the final canvas
+            if(videoType == "Webcam"){
+                ctx.drawImage(webcamVideo, 0, 0, canvasWidth, canvasHeight);
+            } else if(videoType == "Select Video"){
+                ctx.drawImage(userVideo, 0, 0, canvasWidth, canvasHeight);
+            }  else if(videoType == "Default"){
+                ctx.drawImage(defaultVideo, 0, 0, canvasWidth, canvasHeight);
+            }
         }
 
         renderText();
@@ -692,6 +720,27 @@ function interpolateHex(hex1,hex2,factor){
     return rgbResult;
 }
 
+function tweakHexColor(hexColor, range){
+    var rgb = hexToRgb(hexColor);
+  
+    var newRGBArray = [];
+  
+    newRGBArray.push(Math.floor(rgb.r+range*Math.random()-range/2));
+    newRGBArray.push(Math.floor(rgb.b+range*Math.random()-range/2));
+    newRGBArray.push(Math.floor(rgb.g+range*Math.random()-range/2));
+  
+    var newHexColor = rgbToHex(newRGBArray[0],newRGBArray[1],newRGBArray[2]);
+    return newHexColor;
+}
+
+function rgbToHex(r, g, b) {
+    return "#" + (
+      (r.toString(16).padStart(2, "0")) +
+      (g.toString(16).padStart(2, "0")) +
+      (b.toString(16).padStart(2, "0"))
+    );
+}
+
 /*
 //shortcut hotkey presses
 document.addEventListener('keydown', function(event) {
@@ -741,13 +790,20 @@ function toggleGUI(){
 }
 
 function toggleVideoRecord(){
-    if(recordVideoState == false){
-      recordVideoState = true;
-      chooseRecordingFunction();
-    } else {
-      recordVideoState = false;
-      chooseEndRecordingFunction();
-    }
+
+    userVideo.currentTime = 0;
+    defaultVideo.currentTime = 0;
+
+    setTimeout(function(){
+        if(recordVideoState == false){
+            recordVideoState = true;
+            chooseRecordingFunction();
+          } else {
+            recordVideoState = false;
+            chooseEndRecordingFunction();
+          }
+    },250);
+
 }
 
 function chooseRecordingFunction(){
@@ -818,7 +874,7 @@ async function recordVideoMuxer() {
         codec: "avc1.42003e",
         width: videoWidth,
         height: videoHeight,
-        bitrate: 10_000_000,
+        bitrate: 14_000_000,
         bitrateMode: "constant",
     });
     //NEW codec: "avc1.42003e",

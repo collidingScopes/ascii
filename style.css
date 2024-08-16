@@ -6,7 +6,7 @@ html, body{
     margin: 0;
     padding: 0;
     position: absolute;
-    background-color: #320541;
+    background-color: #000000;
 }
 
 
@@ -18,7 +18,7 @@ html, body{
     opacity: 0.9;
     margin: 0;
     z-index: 10;
-    /*float: right;*/
+    float: right;
 }
 
 .dg {
