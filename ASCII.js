@@ -14,6 +14,7 @@ Mobile:
 - Select Video dropdown doesn't work -- need to click the button as well
 Make GUI float farther to the right so that it doesn't cover canvas (need to make body wider?)
 About / links div / GITHUB README
+Adjust browser zoom level / viewport width upon change of canvas width (to fit the whole canvas on the screen)
 */
 
 var webcamVideo = document.getElementById('webcamVideo');
@@ -292,7 +293,7 @@ function changeVideoType(){
         //fileInput.trigger("click");
         //$('#fileInput').trigger("click"); 
         selectVideo();
-        
+
     } else if(videoType == "Default"){
         startDefaultVideo();
     }
