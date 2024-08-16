@@ -39,7 +39,7 @@ var webcamVideoWidth = Math.min(640,Math.floor(window.innerWidth));
 var webcamVideoHeight = Math.floor(webcamVideoWidth * 3/4);
 */
 
-var webcamAspectRatio = 1.333333; //width: 640px, height: 480px
+var webcamAspectRatio = 1;
 var resizedWebcamWidth = Math.min(1080,Math.floor(window.innerWidth));
 var resizedWebcamHeight = Math.round(resizedWebcamWidth / webcamAspectRatio);
 
@@ -339,24 +339,29 @@ function startWebcam() {
         window.localStream = stream;
         webcamVideo.srcObject = stream;
         webcamVideo.play();
-        webcamAspectRatio = stream.getVideoTracks()[0].getSettings().aspectRatio;
+        if(stream.getVideoTracks()[0].getSettings().aspectRatio == undefined){
+            webcamAspectRatio = stream.getVideoTracks()[0].getSettings().width / stream.getVideoTracks()[0].getSettings().height;
+        } else {
+            webcamAspectRatio = stream.getVideoTracks()[0].getSettings().aspectRatio;
+        }
         console.log("Aspect Ratio: "+webcamAspectRatio);
+
+        resizedWebcamWidth = Math.min(1080,Math.floor(window.innerWidth));
+        resizedWebcamHeight = Math.round(resizedWebcamWidth / webcamAspectRatio);
+    
+        canvasWidth = resizedWebcamWidth;
+        canvasHeight = resizedWebcamHeight;
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+
+        refresh();
+
+        playAnimationToggle = true;
+        animationRequest = requestAnimationFrame(loop);
     })
     .catch((err) => {
         console.log(err);
     });
-
-    playAnimationToggle = true;
-
-    resizedWebcamWidth = Math.min(1080,Math.floor(window.innerWidth));
-    resizedWebcamHeight = Math.round(resizedWebcamWidth / webcamAspectRatio);
-
-    canvasWidth = resizedWebcamWidth;
-    canvasHeight = resizedWebcamHeight;
-    canvas.width = canvasWidth;
-    canvas.height = canvasHeight;
-
-    animationRequest = requestAnimationFrame(loop);
 
 }
 
