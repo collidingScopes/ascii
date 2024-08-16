@@ -201,7 +201,7 @@ input:hover{
 }
 
 #paletteChoice{
-    border-bottom: 2px solid rgb(212, 0, 255) !important;
+    border-bottom: 2px solid #d400ff !important;
 }
 
 .select-style select:focus {

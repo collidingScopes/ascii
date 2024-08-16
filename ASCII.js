@@ -2,8 +2,7 @@
 To do:
 Add max video size (resize or just scale it down in browser?)
 Allow toggle for different monospace fonts (Japanese, etc.)
-Enable flickering text (text raining down the screen like the matrix)
-Try using luminosity or edge detection instead of lightness values
+Try using edge detection instead of luminosity values
 Allow gradient background
 Allow image upload, with function to determine based on the file extension and handle accordingly
 Investigate frame rate unsynced issue when video recording
@@ -11,13 +10,13 @@ Video export can have dropped frames / uneven time / low quality
 Change shortcuts so that they don't interfere with the text input (add control to front?)
 GUI to control background type (solid color, gradient, based on video, etc.)\
 GUI needs to be dynamic and show/hide values based on user choices (e.g., select video button)
+Allow second font color, with it taking up half the luminosity range above the threshold (red/blue)
 Mobile:
 - Need to get webcam dimensions dynamically and use that instead
 - Default video is too wide? Need to resize video or screen upon startup?
 - Select Video dropdown doesn't work -- need to click the button as well
 Create video based on the scanLines threshold tween effect as input
 Font size tweak for fixed text (smaller for regular, larger font for invert)
-Single width text with a slider for % of the canvas that has the effect turned on (effect left, video right)
 */
 
 var webcamVideo = document.getElementById('webcamVideo');
@@ -110,11 +109,13 @@ console.log("isSafari: "+isSafari+", isFirefox: "+isFirefox+", isIOS: "+isIOS+",
 var obj = {
     videoType: 'Default',
     effectWidth: 50,
-    backgroundColor: "#0b1563",
+    backgroundColor: "#080c37",
     backgroundGradient: false,
-    fontColor: "#dbfffd",
+    backgroundSaturation: 100,
+    fontColor: "#c7205b",
+    fontColor2: "#0032ff",
     fontSizeFactor: 3,
-    pixelSizeFactor: 50,
+    pixelSizeFactor: 70,
     threshold: 30,
     textInput: "wavesand",
     randomness: 15,
@@ -125,13 +126,19 @@ var obj = {
 var videoType = obj.videoType;
 var effectWidth = obj.effectWidth/100;
 var animationType = obj.animationType;
+
 var backgroundColor = obj.backgroundColor;
+var backgroundRGB = hexToRgb(backgroundColor)
 var backgroundHue = getHueFromHex(backgroundColor);
+var backgroundSaturation = obj.backgroundSaturation;
+
 var backgroundGradient = obj.backgroundGradient;
 var fontSizeFactor = obj.fontSizeFactor;
 var pixelSizeFactor = obj.pixelSizeFactor;
 var fontColor = obj.fontColor;
 var fontHue = getHueFromHex(fontColor);
+var fontColor2 = obj.fontColor2;
+
 var threshold = obj.threshold/100;
 var textInput = obj.textInput;
 var randomness = obj.randomness/100;
@@ -150,8 +157,11 @@ gui.add(obj, 'animationType', [ 'Random Text', 'User Text'] ).name('Text Type').
 gui.add(obj, "textInput").onFinishChange(refresh);
 gui.addColor(obj, "backgroundColor").name("Background Color").onFinishChange(refresh);
 gui.add(obj,"backgroundGradient").name('Bg Gradient?').onChange(refresh);
+gui.add(obj, "backgroundSaturation").min(0).max(100).step(1).name('Bg Saturation').onChange(refresh);
 gui.addColor(obj, "fontColor").name("Font Color").onFinishChange(refresh);
-gui.add(obj, "fontSizeFactor").min(1).max(20).step(1).name('Font Size Factor').onChange(refresh);
+gui.addColor(obj, "fontColor2").name("Font Color2").onFinishChange(refresh);
+
+gui.add(obj, "fontSizeFactor").min(0).max(10).step(1).name('Font Size Factor').onChange(refresh);
 gui.add(obj, "pixelSizeFactor").min(10).max(150).step(1).name('Resolution').onChange(refresh);
 gui.add(obj, "threshold").min(5).max(95).step(1).name('Threshold').onChange(refresh);
 gui.add(obj,"invert").name('Invert?').onChange(refresh);
@@ -203,11 +213,17 @@ function refresh(){
     numRows = Math.ceil(canvasHeight / pixelSize);
     fontSize = pixelSize/0.65;
     ctx.font = fontSize+"px "+fontFamily;
+
     fontColor = obj.fontColor;
+    fontColor2 = obj.fontColor2;
     fontHue = getHueFromHex(fontColor);
+    
     backgroundColor = obj.backgroundColor;
-    backgroundGradient = obj.backgroundGradient;
+    backgroundRGB = hexToRgb(backgroundColor)
     backgroundHue = getHueFromHex(backgroundColor);
+    backgroundSaturation = obj.backgroundSaturation;;
+    
+    backgroundGradient = obj.backgroundGradient;
     threshold = obj.threshold/100;
     textInput = obj.textInput;
     counter = 0;
@@ -459,57 +475,58 @@ const getCharByScale = (scale) => {
 
 function renderText(){
     
-    //ctx.fillStyle = backgroundColor;
-    //ctx.fillRect(0,0,canvasWidth/2,canvasHeight);
-    ctx.fillStyle = fontColor;
+    ctx.fillStyle = backgroundColor;
+    ctx.fillRect(0,0,canvasWidth*effectWidth,canvasHeight);
 
     for(var col=0; col<numCols; col++){
-        
-        
-        //var randomColumn = false;
-        //var startingRow = Math.floor(Math.random()*numRows);
-        /*
-        if(Math.random() < 1*randomness){
-            randomColumn = true;
-        }
-        */
-
         for(var row=0; row<numRows; row++){
             
-            //var adjustedThreshold = threshold + (0.25 * Math.sin(counter/30) * randomness);
-            var adjustedThreshold = threshold; 
+            var adjustedThreshold = threshold + (0.2 * Math.sin(counter/30) * randomness);
+            //var adjustedThreshold = threshold; 
             var currentGrayValue = grayscaleDataArray[row][col];
-            
-            var currentBackgroundColor = "hsl("+backgroundHue+",80%,"+Math.pow(currentGrayValue/255,2)*100+"%)";
-            var currentBackgroundColorInvert = "hsl("+backgroundHue+",80%,"+(1-Math.pow(currentGrayValue/255,2))*100+"%)";
             
             var char;
             var currentFontSize = Math.min(fontSize*3, fontSize * fontSizeFactor/3);
-
-            ctx.fillStyle = backgroundColor;
             
             //draw background color of pixels
             if(backgroundGradient){
+
+                var currentBackgroundColor = "hsl("+backgroundHue+","+backgroundSaturation+"%,"+Math.pow(currentGrayValue/255,2)*100+"%)";
+                var currentBackgroundColorInvert = "hsl("+backgroundHue+","+backgroundSaturation+"%,"+(1-Math.pow(currentGrayValue/255,2))*100+"%)";
+                
                 if(invertToggle == false){
                     if(currentGrayValue/255 > adjustedThreshold){
                         ctx.fillStyle = currentBackgroundColor;
                     } else {
-                        ctx.fillStyle = "hsl("+backgroundHue+",80%,"+adjustedThreshold/4*100+"%)";
+                        ctx.fillStyle = "hsl("+backgroundHue+","+backgroundSaturation+"%,"+adjustedThreshold/4*100+"%)";
                     }
                 } else {
                     if(currentGrayValue/255 < (1-adjustedThreshold)){
                         ctx.fillStyle = currentBackgroundColorInvert;
+                    } else {
+                        ctx.fillStyle = "hsl("+backgroundHue+","+backgroundSaturation+"%,"+adjustedThreshold/4*100+"%)";
                     }
                 }
+
+                ctx.fillRect(col*pixelSize,row*pixelSize,pixelSize,pixelSize);
+
             } else {
-                ctx.fillStyle = backgroundColor;
+                //ctx.fillStyle = backgroundColor;
+                
+                /*
+                Background color = actual video stream color
+                var r = videoPixels[(row*numCols+col)*4];
+                var g = videoPixels[(row*numCols+col)*4 + 1];
+                var b = videoPixels[(row*numCols+col)*4 + 2];
+                var a = 1;
+                ctx.fillStyle = "rgb("+r+","+g+","+b+","+a+")";
+                */
             }
-            ctx.fillRect(col*pixelSize,row*pixelSize,pixelSize,pixelSize);
             
             //choose text character to draw
             if(randomColumnArray[col]){
                 //if((counter % (numRows+startingRowArray[col])) > row){
-                if( (((counter+startingRowArray[col]) % 100)/100*numRows) > row){
+                if( (((counter+startingRowArray[col]) % 100)/100*numRows)+startingRowArray[col] > row){
                     //char = preparedGradient[Math.floor(Math.random()*preparedGradient.length)]; //draw random char
                     char = getCharByScale(currentGrayValue);
                 } else {
@@ -521,33 +538,32 @@ function renderText(){
                 char = getCharByScale(currentGrayValue);
             } else if(animationType == "User Text"){
                 char = textInput[(row*numCols+col)%textInput.length];
-                currentFontSize = Math.min(fontSize*3, Math.floor( (Math.pow(currentGrayValue/255,2)) * fontSizeFactor/3 * fontSize ));
+                if(invertToggle){
+                    currentFontSize = Math.min(fontSize*3, Math.floor( (1-Math.pow(currentGrayValue/255,1)) * fontSizeFactor/3 * fontSize ));
+                } else {
+                    currentFontSize = Math.min(fontSize*3, Math.floor( (Math.pow(currentGrayValue/255,1)) * fontSizeFactor/3 * fontSize ));
+                }
             }
 
             //draw text onto canvas
             ctx.font = currentFontSize+"px "+fontFamily;
             //ctx.fillStyle = fontColor;
-            ctx.fillStyle = "hsl("+fontHue+",80%,"+currentGrayValue/255*100+"%)";
+            //ctx.fillStyle = "hsl("+fontHue+",80%,"+currentGrayValue/255*100+"%)";
             if(invertToggle == false){
                 if(currentGrayValue/255 > adjustedThreshold){
+                    
+                    ctx.fillStyle = interpolateHex(fontColor,fontColor2,(currentGrayValue/255-adjustedThreshold) / (1-adjustedThreshold))                    
                     ctx.fillText(char, col*pixelSize, row*(pixelSize) + pixelSize);
                     //ctx.strokeStyle = fontColor;
                     //ctx.strokeText(char, col*pixelSize + pixelSize/4, row*(pixelSize) + pixelSize/2);
                 }
             } else {
                 if(currentGrayValue/255 < (1-adjustedThreshold)){
+                    
+                    ctx.fillStyle = interpolateHex(fontColor,fontColor2,(currentGrayValue/255) / (1-adjustedThreshold))                                        
                     ctx.fillText(char, col*pixelSize, row*(pixelSize) + pixelSize);
                 }
             }
-            
-            /*
-            var r = videoPixels[(row*numCols+col)*4];
-            var g = videoPixels[(row*numCols+col)*4 + 1];
-            var b = videoPixels[(row*numCols+col)*4 + 2];
-            var a = 1;
-            ctx.fillStyle = "rgb("+r+","+g+","+b+","+a+")";
-            ctx.fillRect(col*pixelSize,row*pixelSize,pixelSize,pixelSize);
-            */
 
         }
         
@@ -642,6 +658,38 @@ function hexToRgb(hex) {
         g: parseInt(result[2], 16),
         b: parseInt(result[3], 16)
     } : null;
+}
+
+function rgbToHue(r, g, b) {
+    const rNorm = r / 255;
+    const gNorm = g / 255;
+    const bNorm = b / 255;
+    const hue = Math.atan2(Math.sqrt(3) * (gNorm - bNorm), 2 * rNorm - gNorm - bNorm);
+    return hue * 180 / Math.PI;
+}
+
+function rgbToSaturation(r, g, b) {
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    return (max - min) / max;
+}
+
+function rgbToLightness(r, g, b) {
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    return (max + min) / 2 / 255;
+}
+
+function interpolateHex(hex1,hex2,factor){
+    hex1RGB = hexToRgb(hex1);
+    hex2RGB = hexToRgb(hex2);
+
+    var newR = Math.round(hex1RGB.r + (hex2RGB.r - hex1RGB.r)*factor);
+    var newG = Math.round(hex1RGB.g + (hex2RGB.g - hex1RGB.g)*factor);
+    var newB = Math.round(hex1RGB.b + (hex2RGB.b - hex1RGB.b)*factor);
+
+    var rgbResult = "rgb("+newR+","+newG+","+newB+")";
+    return rgbResult;
 }
 
 /*
