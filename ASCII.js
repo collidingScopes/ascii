@@ -198,6 +198,10 @@ var guiCloseButton = document.getElementsByClassName("close-button");
 console.log(guiCloseButton.length);
 guiCloseButton[0].addEventListener("click",updateGUIState);
 
+function selectVideo(){
+    fileInput.click();
+}
+
 function updateGUIState(){
     if(guiOpenToggle){
         guiOpenToggle = false;
@@ -284,10 +288,11 @@ function changeVideoType(){
 
     } else if(videoType == "Select Video"){
         console.log("select video file");
-        fileInput.click();
+        //fileInput.click();
         //fileInput.trigger("click");
         //$('#fileInput').trigger("click"); 
-
+        selectVideo();
+        
     } else if(videoType == "Default"){
         startDefaultVideo();
     }
