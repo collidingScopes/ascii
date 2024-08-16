@@ -3,20 +3,17 @@ To do:
 Add max video size (resize or just scale it down in browser?)
 Allow toggle for different monospace fonts (Japanese, etc.)
 Try using edge detection instead of luminosity values
-Allow gradient background
 Allow image upload, with function to determine based on the file extension and handle accordingly
 Investigate frame rate unsynced issue when video recording
 Video export can have dropped frames / uneven time / low quality
 Change shortcuts so that they don't interfere with the text input (add control to front?)
-GUI to control background type (solid color, gradient, based on video, etc.)\
 GUI needs to be dynamic and show/hide values based on user choices (e.g., select video button)
-Allow second font color, with it taking up half the luminosity range above the threshold (red/blue)
 Mobile:
 - Need to get webcam dimensions dynamically and use that instead
 - Default video is too wide? Need to resize video or screen upon startup?
 - Select Video dropdown doesn't work -- need to click the button as well
-Create video based on the scanLines threshold tween effect as input
-Font size tweak for fixed text (smaller for regular, larger font for invert)
+Make GUI float farther to the right so that it doesn't cover canvas (need to make body wider?)
+About / links div / GITHUB README
 */
 
 var webcamVideo = document.getElementById('webcamVideo');
@@ -40,7 +37,8 @@ var webcamVideoHeight = Math.floor(webcamVideoWidth * 3/4);
 */
 
 var webcamAspectRatio = 1;
-var resizedWebcamWidth = Math.min(1080,Math.floor(window.innerWidth));
+var webcamVideoMaxWidth = 1080;
+var resizedWebcamWidth = Math.min(webcamVideoMaxWidth,Math.floor(window.innerWidth));
 var resizedWebcamHeight = Math.round(resizedWebcamWidth / webcamAspectRatio);
 
 var defaultVideoWidth = 480;
@@ -285,6 +283,7 @@ function changeVideoType(){
         */
 
     } else if(videoType == "Select Video"){
+        console.log("select video file");
         fileInput.click();
     } else if(videoType == "Default"){
         startDefaultVideo();
@@ -340,13 +339,13 @@ function startWebcam() {
         webcamVideo.srcObject = stream;
         webcamVideo.play();
         if(stream.getVideoTracks()[0].getSettings().aspectRatio == undefined){
-            webcamAspectRatio = stream.getVideoTracks()[0].getSettings().width / stream.getVideoTracks()[0].getSettings().height;
+            webcamAspectRatio = window.innerWidth / window.innerHeight;
         } else {
             webcamAspectRatio = stream.getVideoTracks()[0].getSettings().aspectRatio;
         }
         console.log("Aspect Ratio: "+webcamAspectRatio);
 
-        resizedWebcamWidth = Math.min(1080,Math.floor(window.innerWidth));
+        resizedWebcamWidth = Math.min(webcamVideoMaxWidth,Math.floor(window.innerWidth));
         resizedWebcamHeight = Math.round(resizedWebcamWidth / webcamAspectRatio);
     
         canvasWidth = resizedWebcamWidth;
