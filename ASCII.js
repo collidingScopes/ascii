@@ -285,6 +285,9 @@ function changeVideoType(){
     } else if(videoType == "Select Video"){
         console.log("select video file");
         fileInput.click();
+        //fileInput.trigger("click");
+        //$('#fileInput').trigger("click"); 
+
     } else if(videoType == "Default"){
         startDefaultVideo();
     }
@@ -393,12 +396,6 @@ fileInput.addEventListener('change', (e) => {
         console.log("cancel animation");
     }
 
-    /*
-    userVideo.classList.remove("hidden");
-    webcamVideo.classList.add("hidden");
-    defaultVideo.classList.add("hidden");
-    */
-
     const file = e.target.files[0];
     const url = URL.createObjectURL(file);
     userVideo.src = url;
@@ -423,7 +420,6 @@ fileInput.addEventListener('change', (e) => {
     },2000);
 
 });
-
 
 const render = (ctx) => {
     if (canvasWidth && canvasHeight) {
