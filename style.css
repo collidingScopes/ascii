@@ -219,9 +219,11 @@ input, select {
 }
 
 input[type="file"] {
-    /*display: none;*/
+    display: none;
+    /*
     position:absolute;
     top:-9999px;
+    */
 }
 .custom-file-upload {
     border: 1px solid #ccc;
