@@ -116,7 +116,7 @@ var obj = {
     videoType: 'Default',
     effectWidth: 50,
     backgroundColor: "#080c37",
-    backgroundGradient: false,
+    backgroundGradient: true,
     backgroundSaturation: 60,
     fontColor: "#c7205b",
     fontColor2: "#0032ff",
@@ -352,6 +352,10 @@ function startWebcam() {
             webcamAspectRatio = 3/4;
         } else {
             webcamAspectRatio = stream.getVideoTracks()[0].getSettings().aspectRatio;
+        }
+
+        if(webcamAspectRatio == undefined){
+            webcamAspectRatio = 1.33333;
         }
         console.log("Aspect Ratio: "+webcamAspectRatio);
 
