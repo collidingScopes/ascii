@@ -44,8 +44,12 @@
     <!--
     <button id="pausePlayButton">Pause/Play (p)</button>
     -->
+    <div id="effectWidthDiv">
+        <pre><span class="tableText" id="effectWidthLabel">Effect Width</span><br><input class="input-number-noSpinners" type="range" id="effectWidthInput" value="50" min="0" max="100"></pre>
+    </div>
 
     <div id="canvasDiv">
+
         <canvas id="canvas" class="displayCanvas"></canvas>
         <video id="webcamVideo" class="displayCanvas hidden" playsinline></video>
         <video id="userVideo" class="displayCanvas hidden" loop muted playsinline></video>
@@ -58,9 +62,10 @@
     </div>
 
     <label for="fileInput" class="custom-file-upload" id="fileInputLabel">
-        <i class="fa fa-cloud-upload"></i> Select video
+        <i class="fa fa-cloud-upload"></i> Upload video
     </label>
     <input type="file" id="fileInput" accept="video/*, image/*">
+    <button id="useWebcamButton">Use Webcam</button>
 
     <div id="videoRecordingMessageDiv" class="hidden sticky-bottom">
         Video recording underway. Press menu button or "v" to stop. The video will be saved to your downloads folder afterwards.

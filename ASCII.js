@@ -2,19 +2,21 @@
 To do:
 Add max video size (resize or just scale it down in browser?)
 Allow toggle for different monospace fonts (Japanese, etc.)
+- Font which is more bold
 Try using edge detection instead of luminosity values
 Allow image upload, with function to determine based on the file extension and handle accordingly
+- When image is uploaded, use a new function that accepts the image and then runs scanLines algo on it -- as pseudo video feed
 Investigate frame rate unsynced issue when video recording
 Video export can have dropped frames / uneven time / low quality
 Change shortcuts so that they don't interfere with the text input (add control to front?)
 GUI needs to be dynamic and show/hide values based on user choices (e.g., select video button)
 Mobile:
-- Need to get webcam dimensions dynamically and use that instead
 - Default video is too wide? Need to resize video or screen upon startup?
 - Select Video dropdown doesn't work -- need to click the button as well
 Make GUI float farther to the right so that it doesn't cover canvas (need to make body wider?)
 About / links div / GITHUB README
 Adjust browser zoom level / viewport width upon change of canvas width (to fit the whole canvas on the screen)
+Allow custom char set during Random Text mode (so that you can try with only a few chars)
 */
 
 var webcamVideo = document.getElementById('webcamVideo');
@@ -54,6 +56,12 @@ var alpha=1;
 
 canvas.width = canvasWidth;
 canvas.height = canvasHeight;
+
+var effectWidthInput = document.getElementById("effectWidthInput");
+effectWidthInput.style.width = canvasWidth;
+var effectWidth = Number(effectWidthInput.value)/100;
+effectWidthInput.addEventListener("change",refresh);
+var effectWidthLabel = document.getElementById("effectWidthLabel");
 
 var videoPixels = [];
 var grayscaleDataArray = [];
@@ -113,8 +121,6 @@ console.log("isSafari: "+isSafari+", isFirefox: "+isFirefox+", isIOS: "+isIOS+",
 
 //add gui
 var obj = {
-    videoType: 'Default',
-    effectWidth: 50,
     backgroundColor: "#080c37",
     backgroundGradient: true,
     backgroundSaturation: 60,
@@ -129,8 +135,8 @@ var obj = {
     animationType: 'Random Text',
 };
 
-var videoType = obj.videoType;
-var effectWidth = obj.effectWidth/100;
+var videoType = "Default";
+
 var animationType = obj.animationType;
 
 var backgroundColor = obj.backgroundColor;
@@ -157,8 +163,18 @@ gui.close();
 var guiOpenToggle = false;
 
 // Choose from accepted values
-gui.add(obj, 'videoType', [ 'Default', 'Select Video', 'Webcam'] ).name('Video Type').onChange(changeVideoType);
-gui.add(obj, "effectWidth").min(0).max(100).step(1).name('Effect Width %').onChange(refresh);
+obj['selectVideo'] = function () {
+    videoType = "Select Video";
+    fileInput.click();
+};
+gui.add(obj, 'selectVideo').name('Upload Video');
+
+obj['useWebcam'] = function () {
+    videoType = "Webcam";
+    changeVideoType();
+};
+gui.add(obj, 'useWebcam').name('Use Webcam');
+
 gui.add(obj, 'animationType', [ 'Random Text', 'User Text'] ).name('Text Type').onChange(refresh);
 gui.add(obj, "textInput").onFinishChange(refresh);
 gui.addColor(obj, "backgroundColor").name("Background Color").onFinishChange(refresh);
@@ -169,13 +185,9 @@ gui.addColor(obj, "fontColor2").name("Font Color2").onFinishChange(refresh);
 
 gui.add(obj, "fontSizeFactor").min(0).max(10).step(1).name('Font Size Factor').onChange(refresh);
 gui.add(obj, "pixelSizeFactor").min(10).max(200).step(1).name('Resolution').onChange(refresh);
-gui.add(obj, "threshold").min(5).max(95).step(1).name('Threshold').onChange(refresh);
+gui.add(obj, "threshold").min(0).max(95).step(1).name('Threshold').onChange(refresh);
 gui.add(obj,"invert").name('Invert?').onChange(refresh);
 gui.add(obj, "randomness").min(0).max(100).step(1).name('Randomness').onChange(refresh);
-obj['selectVideo'] = function () {
-    fileInput.click();
-};
-gui.add(obj, 'selectVideo').name('Select Video');
 
 obj['pausePlay'] = function () {
     togglePausePlay();
@@ -199,7 +211,14 @@ var guiCloseButton = document.getElementsByClassName("close-button");
 console.log(guiCloseButton.length);
 guiCloseButton[0].addEventListener("click",updateGUIState);
 
+var useWebcamButton = document.getElementById("useWebcamButton");
+useWebcamButton.addEventListener("click",function(){
+    videoType = "Webcam";
+    changeVideoType();
+});
+
 function selectVideo(){
+    videoType = "Select Video";
     fileInput.click();
 }
 
@@ -215,8 +234,11 @@ function refresh(){
     console.log("refresh");
     console.log("canvas width/height: "+canvasWidth+", "+canvasHeight);
 
+    effectWidthInput.style.width = canvasWidth;
+    effectWidth = Number(effectWidthInput.value)/100;
+    effectWidthLabel.innerHTML = "Effect Width: "+Math.round(effectWidth*100)+"%";
+
     animationType = obj.animationType;
-    effectWidth = obj.effectWidth/100;
     fontSizeFactor = obj.fontSizeFactor;
     pixelSizeFactor = obj.pixelSizeFactor;
     pixelSize = Math.ceil(Math.min(canvasWidth,canvasHeight)/pixelSizeFactor);
@@ -275,7 +297,7 @@ function togglePausePlay(){
 
 function changeVideoType(){
     stopVideo();
-    videoType = obj.videoType;
+    //videoType = obj.videoType;
 
     if(videoType == "Webcam"){
 
@@ -406,6 +428,8 @@ fileInput.addEventListener('change', (e) => {
         cancelAnimationFrame(animationRequest);
         console.log("cancel animation");
     }
+
+    videoType = "Select Video";
 
     const file = e.target.files[0];
     const url = URL.createObjectURL(file);

@@ -1,5 +1,5 @@
 html, body{
-    font-size: 18px;
+    font-size: 16px;
     font-family: Helvetica;
     /*max-width: 100%;
     overflow-x: hidden;*/
@@ -27,6 +27,12 @@ html, body{
 
 .closed{
     height: 0px;
+}
+
+.close-button {
+    font-size: 1.2em;
+    font-weight: bold;
+    background-color: rgb(9, 81, 99) !important;
 }
 
 #canvasSizeTextBox {
@@ -229,7 +235,7 @@ input[type="file"] {
     background-color: #226f63;
     color: #fff;
     font-weight: bold;
-    font-size: 14px;
+    font-size: 1em;
     font-family: Helvetica;
     display: inline-block;
     padding: 8px;
@@ -246,13 +252,19 @@ input[type="color"] {
     margin: 0px;
 }
 
-input[type="range"] {
-    max-width:25vw;
-}
-
 input[type="checkbox"] {
     min-width: 20px;
     min-height: 20px;
+}
+
+#effectWidthDiv {
+    margin-top: 2vh;
+}
+
+#effectWidthInput {
+    width: 100% !important;
+    min-width: 100% !important;
+    padding: 0;
 }
 
 button {
@@ -297,7 +309,7 @@ pre {
 /* applies when screen is wide enough */ 
 @media (min-width: 700px) {
     button, .tableText {
-      font-size: 0.9em;
+      font-size: 1em;
     }
 }
 
