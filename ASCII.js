@@ -82,7 +82,7 @@ var videoRecordInterval;
 var videoEncoder;
 var muxer;
 var mobileRecorder;
-var videofps = 10;
+var videofps = 12;
 var frameNumber = 0;
 
 //detect user browser
