@@ -6,9 +6,8 @@ html, body{
     margin: 0;
     padding: 0;
     position: absolute;
-    background-color: #000000;
+    background-color: #151632;
 }
-
 
 #gui {
     position: absolute;
@@ -93,7 +92,7 @@ html, body{
     background-color: white;
     text-align: center;
     justify-content: center;
-    background-color: #000000;
+    background-color: #151632;
 }
 
 #notesDiv{
@@ -105,7 +104,7 @@ html, body{
     justify-content: center;
     align-items: center;
     /*border-top: 5px solid #581845;*/
-    background-color: #17193e;
+    background-color: #151632;
     color: white;
 }
 
