@@ -12,6 +12,8 @@ Enormous thanks and credits to <a href="https://medium.com/@sasha.kub95/webcam-s
 
 <img src="/assets/metro.png">
 
+<a href="https://www.buymeacoffee.com/stereodrift" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
+
 License
 =======
 This is an open source project provided under an <a href="https://opensource.org/license/MIT">MIT license</a>

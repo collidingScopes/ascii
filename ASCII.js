@@ -5,6 +5,7 @@ Allow image upload, with function to determine based on the file extension and h
 When image is uploaded, use a new function that accepts the image and then runs scanLines algo on it -- as pseudo video feed
 Investigate frame rate unsynced issue when video recording -- video export can have dropped frames / uneven time / low quality
 Allow custom char set during Random Text mode (so that you can try with only a few chars)
+Add button that exports the relevant chars / line breaks into a textfield, for a specific frame
 */
 
 var webcamVideo = document.getElementById('webcamVideo');
