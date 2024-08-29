@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
 <head>
-    <title>ASCII Animations</title>
+    <title>Video-to-ASCII</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" type="text/css" href="style.css">
@@ -13,62 +13,92 @@
   
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   
-    <!--
-    <meta property="og:title" content="Hiroshi Nagai - animated painting" />
-    <meta property="og:description" content="Create your own animated painting" />
+    <meta property="og:title" content="Video-to-ASCII-Art" />
+    <meta property="og:description" content="Turn videos into ASCII pixel art" />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://collidingscopes.github.io/nagai/" />
-    <meta property="og:image" content="https://collidingscopes.github.io/nagai/images/Shikoku.png">
+    <meta property="og:url" content="https://collidingscopes.github.io/ascii/" />
+    <meta property="og:image" content="https://collidingscopes.github.io/ascii/assets/metro.png">
     <meta property="og:image:type" content="image/png" >
-    <meta property="og:image:width" content="866" >
-    <meta property="og:image:height" content="825" >
+    <meta property="og:image:width" content="1280" >
+    <meta property="og:image:height" content="720" >
   
-  
-    <link rel="icon" href="images/siteFavicon3.png">
-    <link rel="apple-touch-icon" href="images/siteFavicon3.png">
-      -->
+    <link rel="icon" href="assets/siteFavicon3.png">
+    <link rel="apple-touch-icon" href="assets/siteFavicon3.png">
+
 </head>
 
 <body>
 
     <div id="gui"></div>
 
-    <!--
-    <select id="videoTypeInput" class="select-style userInput">
-        <option value="webcam" selected="selected">Webcam</option>
-        <option value="userVideo">Upload Video</option>
-    </select>
-    -->
 
-    
-    <!--
-    <button id="pausePlayButton">Pause/Play (p)</button>
-    -->
-    <div id="effectWidthDiv">
-        <pre><span class="tableText" id="effectWidthLabel">Effect Width</span><br><input class="input-number-noSpinners" type="range" id="effectWidthInput" value="50" min="0" max="100"></pre>
-    </div>
 
     <div id="canvasDiv">
 
-        <canvas id="canvas" class="displayCanvas"></canvas>
-        <video id="webcamVideo" class="displayCanvas hidden" playsinline></video>
-        <video id="userVideo" class="displayCanvas hidden" loop muted playsinline></video>
-        <video id="defaultVideo" class="displayCanvas hidden" width="480px" height="848px" loop muted playsinline>
+        <div id="effectWidthDiv">
+            <pre><span class="tableText" id="effectWidthLabel">Effect Width</span><br><input class="input-number-noSpinners" type="range" id="effectWidthInput" value="50" min="0" max="100"></pre>
+        </div>
+
+        <canvas id="canvas" class=""></canvas>
+        <video id="webcamVideo" class=" hidden" playsinline></video>
+        <video id="userVideo" class=" hidden" loop muted playsinline></video>
+        <video id="defaultVideo" class=" hidden" width="480px" height="848px" loop muted playsinline>
             <source src="assets/waves.mp4" type="video/mp4" />
         </video>
 
-        <canvas id="canvas-video" class="displayCanvas hidden"></canvas>
-        <canvas id="canvas-video-pixel" class="displayCanvas hidden"></canvas>
+        <canvas id="canvas-video" class=" hidden"></canvas>
+        <canvas id="canvas-video-pixel" class=" hidden"></canvas>
     </div>
 
-    <label for="fileInput" class="custom-file-upload" id="fileInputLabel">
-        <i class="fa fa-cloud-upload"></i> Upload video
-    </label>
-    <input type="file" id="fileInput" accept="video/*, image/*">
-    <button id="useWebcamButton">Use Webcam</button>
+    <table id="buttonTable">
+        <tr>
+            <td>
+                <label for="fileInput" class="custom-file-upload" id="fileInputLabel">
+                    <i class="fa fa-cloud-upload"></i> Upload video
+                </label>
+                <input type="file" id="fileInput" accept="video/*, image/*">
+            </td>
+
+            <td>
+                <button id="useWebcamButton">Use Webcam</button>
+            </td>
+        </tr>
+    </table>
 
     <div id="videoRecordingMessageDiv" class="hidden sticky-bottom">
         Video recording underway. Press menu button or "v" to stop. The video will be saved to your downloads folder afterwards.
+    </div>
+
+    <div id="notesDiv">
+        <div id="textBox">
+
+            <h2 id="aboutText">About</h2>
+
+            <p>Turn videos into ASCII pixel art! Use your webcam feed or upload a video, then use the controls to adjust the colors, resolution, text style, etc...</p>
+            <p>You can create a video export to save and/or share your animation afterwards.</p>
+            <p>This tool is completely free, open source (MIT license), without any paywalls or premium options. You are welcome to use it for personal or commercial purposes.</p>
+            <p>If you found this tool useful, feel free to buy me a coffee. This would be much appreciated during late-night coding sessions!</p>
+            
+            <a href="https://www.buymeacoffee.com/stereoDrift" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/yellow_img.png" alt="Buy Me A Coffee"></a>
+
+            <p>The code used to create the animation is quite resource-intensive, so it may run with some lag if your computer doesn't have enough computing power, too many tabs open, low battery, etc.</p>
+            <p>If the video export feature does not work for you, please try a free screen-recording tool such as OBS Studio.</p>
+
+            <p>This project is coded using Javascript, HTML canvas, and CSS (see github repo linked below). Video creation and encoding is done using mp4 muxer.</p>
+            <p>I do not have access to any of the videos that you upload here, as all processing is done "client-side" (i.e., <b>no videos or images are saved/stored by me — they stay on your computer only</b>).</p>
+            <p>Feel free to reach out to discuss, ask questions, or to share your creations! The animations can be easily uploaded to instagram or otherwise -- you can tag me <a href="https://www.instagram.com/stereo.drift/" target="_blank" rel="noopener">@stereo.drift</a> :)</p>
+        </div>
+    </div>
+
+    <div id="linksDiv">
+        <table id="infoMenuTable">
+            <tr>
+                <td><button id="gitHubButton"class="socialMediaButton"><a href="https://github.com/collidingScopes/ascii" target="_blank" rel="noopener"><i class="fa-brands fa-github"></i></a></button></td>
+                <td><button id="coffeeButton" class="socialMediaButton"><a href="https://www.buymeacoffee.com/stereoDrift" target="_blank" rel="noopener"><i class="fa-solid fa-heart"></i></a></button></td>
+                <td><button id="instagramButton" class="socialMediaButton"><a href="https://www.instagram.com/stereo.drift/" target="_blank" rel="noopener"><i class="fa-brands fa-instagram"></i></a></button></td>
+                <td><button id="emailButton" class="socialMediaButton"><a href="mailto:stereodriftvisuals@gmail.com" target="_blank" rel="noopener"><i class="fa-solid fa-envelope"></i></a></button></td>
+            </tr>
+        </table>
     </div>
 
 </body>

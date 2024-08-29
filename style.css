@@ -131,14 +131,22 @@ h2 {
 }
 
 #canvasDiv {
-    display:flex;
+    /*display:flex;*/
+    display:block;
     margin-top: 3.5vh;
+    margin: 0 auto;
+    max-width: 1080px;
 }
 
 #canvas {
     /*margin: 0 auto;
     padding: 0;
     */
+}
+
+#buttonDiv {
+    display: inline block;
+    margin: 0 auto;
 }
 
 .displayCanvas {
@@ -151,9 +159,6 @@ h2 {
     padding: 0;
     display: block;
 }
-
-/* user input styling */
-
 
 :-ms-input-placeholder { /* Internet Explorer 10-11 */
     color: rgb(194, 194, 194);
@@ -259,18 +264,22 @@ input[type="checkbox"] {
 
 #effectWidthDiv {
     margin-top: 2vh;
+    margin-right: 0;
+    margin-left: 0;
+    padding: 0;
 }
 
 #effectWidthInput {
     width: 100% !important;
     min-width: 100% !important;
     padding: 0;
+    margin: 0;
 }
 
 button {
     padding: 6px;
     font-weight: bold;
-    font-size: 13px;
+    font-size: 1em;
 
     margin: 10px 3px 10px 3px;
     /*margin-left: 3px;

@@ -1,21 +1,10 @@
 /*
 To do:
-Add max video size (resize or just scale it down in browser?)
-Allow toggle for different monospace fonts (Japanese, etc.)
-- Font which is more bold
-Try using edge detection instead of luminosity values
+Allow toggle for different monospace fonts (Japanese, bolder font, etc.)
 Allow image upload, with function to determine based on the file extension and handle accordingly
-- When image is uploaded, use a new function that accepts the image and then runs scanLines algo on it -- as pseudo video feed
-Investigate frame rate unsynced issue when video recording
-Video export can have dropped frames / uneven time / low quality
-Change shortcuts so that they don't interfere with the text input (add control to front?)
-GUI needs to be dynamic and show/hide values based on user choices (e.g., select video button)
-Mobile:
-- Default video is too wide? Need to resize video or screen upon startup?
-- Select Video dropdown doesn't work -- need to click the button as well
-Make GUI float farther to the right so that it doesn't cover canvas (need to make body wider?)
-About / links div / GITHUB README
-Adjust browser zoom level / viewport width upon change of canvas width (to fit the whole canvas on the screen)
+When image is uploaded, use a new function that accepts the image and then runs scanLines algo on it -- as pseudo video feed
+Investigate frame rate unsynced issue when video recording -- video export can have dropped frames / uneven time / low quality
+On mobile -- default video is too wide? Need to resize video or screen upon startup?
 Allow custom char set during Random Text mode (so that you can try with only a few chars)
 */
 
@@ -23,21 +12,19 @@ var webcamVideo = document.getElementById('webcamVideo');
 var userVideo = document.getElementById('userVideo');
 var defaultVideo = document.getElementById('defaultVideo');
 
+//Final animation canvas
 var canvas = document.getElementById("canvas");
 var ctx = canvas.getContext("2d");
 
+//Canvas for raw still images from video
 const canvasRaw = document.getElementById('canvas-video')
 const ctx2 = canvasRaw.getContext("2d", {
     willReadFrequently: true,
 });
 
+//canvas for pixelated grayscale images
 const canvasPixel = document.getElementById('canvas-video-pixel')
 const ctx3 = canvasPixel.getContext("2d");
-
-/*
-var webcamVideoWidth = Math.min(640,Math.floor(window.innerWidth));
-var webcamVideoHeight = Math.floor(webcamVideoWidth * 3/4);
-*/
 
 var webcamAspectRatio = 1;
 var webcamVideoMaxWidth = 1080;
@@ -48,6 +35,8 @@ var defaultVideoWidth = 480;
 var defaultVideoHeight = 848;
 var canvasWidth = defaultVideoWidth;
 var canvasHeight = defaultVideoHeight;
+
+var maxCanvasWidth = 1080;
 
 var pixelSize;
 var numCols;
@@ -68,20 +57,18 @@ var grayscaleDataArray = [];
 
 var fontFamily = "Courier New";
 var fontSize;
-ctx.font;
+//ctx.font;
 
  //this defines the character set. ordered by darker to lighter colour
+const gradient = "____``..--^^~~<>??123456789%%&&@@";
 //const gradient = "_______.:!/r(l1Z4H9W8$@";
-//const gradient = "__..--~~<>??123456789@@@";
 //const gradient =  "`.-':_,^=;><+!rc*/z?sLTv)J7(|Fi{C}fI31tlu[neoZ5Yxjya]2ESwqkP6h9d4VpOGbUAKXHm8RD#$Bg0MNWQ%&@"
-const gradient =  "`.-':_,^=;<+!rc*/z?sTv7(|Fi{C}fI31tu[neoZ5xjya]2EwqkP6h94VpOGbUKXHm8R#$Bg0NW%&@"
+//const gradient =  "`.-':_,^=;<+!rc*/z?sTv7(|Fi{C}fI31tu[neoZ5xjya]2EwqkP6h94VpOGbUKXHm8R#$Bg0NW%&@"
 const preparedGradient = gradient.replaceAll('_', '\u00A0')
 
 var randomColumnArray = [];
 var startingRowArray = [];
 
-//var textInput = "wavesand";
-//var textInput = "♫♪iPod"
 var animationRequest;
 var playAnimationToggle = false;
 var counter = 0;
@@ -119,7 +106,7 @@ if(ua.includes("Android")){
 }
 console.log("isSafari: "+isSafari+", isFirefox: "+isFirefox+", isIOS: "+isIOS+", isAndroid: "+isAndroid);
 
-//add gui
+//CREATE USER GUI MENU
 var obj = {
     backgroundColor: "#080c37",
     backgroundGradient: true,
@@ -136,7 +123,6 @@ var obj = {
 };
 
 var videoType = "Default";
-
 var animationType = obj.animationType;
 
 var backgroundColor = obj.backgroundColor;
@@ -156,13 +142,10 @@ var textInput = obj.textInput;
 var randomness = obj.randomness/100;
 var invertToggle = obj.invert;
 
-//dat.GUI.TEXT_OPEN = "Open Controls (h)";
-//dat.GUI.TEXT_CLOSED = "Close Controls (h)";
 var gui = new dat.gui.GUI({ autoPlace:false });
 gui.close();
 var guiOpenToggle = false;
 
-// Choose from accepted values
 obj['selectVideo'] = function () {
     videoType = "Select Video";
     fileInput.click();
@@ -175,8 +158,6 @@ obj['useWebcam'] = function () {
 };
 gui.add(obj, 'useWebcam').name('Use Webcam');
 
-gui.add(obj, 'animationType', [ 'Random Text', 'User Text'] ).name('Text Type').onChange(refresh);
-gui.add(obj, "textInput").onFinishChange(refresh);
 gui.addColor(obj, "backgroundColor").name("Background Color").onFinishChange(refresh);
 gui.add(obj,"backgroundGradient").name('Bg Gradient?').onChange(refresh);
 gui.add(obj, "backgroundSaturation").min(0).max(100).step(1).name('Bg Saturation').onChange(refresh);
@@ -188,6 +169,9 @@ gui.add(obj, "pixelSizeFactor").min(10).max(200).step(1).name('Resolution').onCh
 gui.add(obj, "threshold").min(0).max(95).step(1).name('Threshold').onChange(refresh);
 gui.add(obj,"invert").name('Invert?').onChange(refresh);
 gui.add(obj, "randomness").min(0).max(100).step(1).name('Randomness').onChange(refresh);
+
+gui.add(obj, 'animationType', [ 'Random Text', 'User Text'] ).name('Text Type').onChange(refresh);
+gui.add(obj, "textInput").onFinishChange(refresh);
 
 obj['pausePlay'] = function () {
     togglePausePlay();
@@ -217,245 +201,8 @@ useWebcamButton.addEventListener("click",function(){
     changeVideoType();
 });
 
-function selectVideo(){
-    videoType = "Select Video";
-    fileInput.click();
-}
 
-function updateGUIState(){
-    if(guiOpenToggle){
-        guiOpenToggle = false;
-    } else {
-        guiOpenToggle = true;
-    }
-}
-
-function refresh(){
-    console.log("refresh");
-    console.log("canvas width/height: "+canvasWidth+", "+canvasHeight);
-
-    effectWidthInput.style.width = canvasWidth;
-    effectWidth = Number(effectWidthInput.value)/100;
-    effectWidthLabel.innerHTML = "Effect Width: "+Math.round(effectWidth*100)+"%";
-
-    animationType = obj.animationType;
-    fontSizeFactor = obj.fontSizeFactor;
-    pixelSizeFactor = obj.pixelSizeFactor;
-    pixelSize = Math.ceil(Math.min(canvasWidth,canvasHeight)/pixelSizeFactor);
-    numCols = Math.ceil(Math.ceil(canvasWidth / pixelSize) * effectWidth);
-    numRows = Math.ceil(canvasHeight / pixelSize);
-    fontSize = pixelSize/0.65;
-    ctx.font = fontSize+"px "+fontFamily;
-
-    fontColor = obj.fontColor;
-    fontColor2 = obj.fontColor2;
-    fontHue = getHueFromHex(fontColor);
-    
-    backgroundColor = obj.backgroundColor;
-    backgroundRGB = hexToRgb(backgroundColor)
-    backgroundHue = getHueFromHex(backgroundColor);
-    backgroundSaturation = obj.backgroundSaturation;;
-    
-    backgroundGradient = obj.backgroundGradient;
-    threshold = obj.threshold/100;
-    textInput = obj.textInput;
-    counter = 0;
-    randomness = obj.randomness/100;
-    invertToggle = obj.invert;
-    //frameNumber = 0;
-    randomColumnArray = [];
-    startingRowArray = [];
-
-    for(var i=0; i<numCols; i++){
-        if(Math.random() < randomness){
-            randomColumnArray[i] = true;
-            startingRowArray[i] = Math.floor( Math.random() * numRows );
-        } else {
-            randomColumnArray[i] = false;
-        }
-    }
-}
-
-function togglePausePlay(){
-    
-    if(playAnimationToggle == false){
-        if(videoType == "Webcam"){
-            startWebcam();
-        } else if(videoType == "Select Video"){
-            refresh();
-            userVideo.play();
-            playAnimationToggle = true;
-            animationRequest = requestAnimationFrame(loop);
-        } else if(videoType == "Default"){
-            startDefaultVideo();
-        }
-    } else {
-        stopVideo();
-    }
-    
-}
-
-function changeVideoType(){
-    stopVideo();
-    //videoType = obj.videoType;
-
-    if(videoType == "Webcam"){
-
-        startWebcam();
-
-        /*
-        canvasWidth = resizedWebcamWidth;
-        canvasHeight = resizedWebcamHeight;
-        canvas.width = canvasWidth;
-        canvas.height = canvasHeight;
-        */
-
-    } else if(videoType == "Select Video"){
-        console.log("select video file");
-        //fileInput.click();
-        //fileInput.trigger("click");
-        //$('#fileInput').trigger("click"); 
-        selectVideo();
-
-    } else if(videoType == "Default"){
-        startDefaultVideo();
-    }
-
-    refresh();
-
-}
-
-function startDefaultVideo(){
-    if(playAnimationToggle==true){
-        playAnimationToggle = false;
-        cancelAnimationFrame(animationRequest);
-        console.log("cancel animation");
-    }
-
-    /*
-    userVideo.classList.add("hidden");
-    webcamVideo.classList.add("hidden");
-    defaultVideo.classList.remove("hidden");
-    */
-
-    canvasWidth = defaultVideoWidth;
-    canvasHeight = defaultVideoHeight;
-    canvas.width = canvasWidth;
-    canvas.height = canvasHeight;
-
-    defaultVideo.play();
-    playAnimationToggle = true;
-    animationRequest = requestAnimationFrame(loop);
-}
-
-function startWebcam() {
-
-    if(playAnimationToggle==true){
-        playAnimationToggle = false;
-        cancelAnimationFrame(animationRequest);
-        console.log("cancel animation");
-    }
-
-    /*
-    userVideo.classList.add("hidden");
-    webcamVideo.classList.remove("hidden");
-    defaultVideo.classList.add("hidden");
-    */
-
-    navigator.mediaDevices.getUserMedia({
-        audio: false,
-        video: true
-    })
-    .then(stream => {
-        window.localStream = stream;
-        webcamVideo.srcObject = stream;
-        webcamVideo.play();
-        if(isIOS || isAndroid){
-            webcamAspectRatio = 3/4;
-        } else {
-            webcamAspectRatio = stream.getVideoTracks()[0].getSettings().aspectRatio;
-        }
-
-        if(webcamAspectRatio == undefined){
-            webcamAspectRatio = 1.33333;
-        }
-        console.log("Aspect Ratio: "+webcamAspectRatio);
-
-        resizedWebcamWidth = Math.min(webcamVideoMaxWidth,Math.floor(window.innerWidth));
-        resizedWebcamHeight = Math.round(resizedWebcamWidth / webcamAspectRatio);
-    
-        canvasWidth = resizedWebcamWidth;
-        canvasHeight = resizedWebcamHeight;
-        canvas.width = canvasWidth;
-        canvas.height = canvasHeight;
-
-        refresh();
-
-        playAnimationToggle = true;
-        animationRequest = requestAnimationFrame(loop);
-    })
-    .catch((err) => {
-        console.log(err);
-    });
-
-}
-
-var localStream;
-function stopVideo(){
-
-    if(playAnimationToggle==true){
-        playAnimationToggle = false;
-        cancelAnimationFrame(animationRequest);
-        console.log("cancel animation");
-    }
-
-    webcamVideo.pause();
-    userVideo.pause();
-    defaultVideo.pause();
-
-    if(localStream == null){
-    } else {
-        localStream.getVideoTracks()[0].stop();
-    }
-    //webcamVideo.src = '';
-}
-
-var fileInput = document.getElementById("fileInput");
-fileInput.addEventListener('change', (e) => {
-
-    if(playAnimationToggle==true){
-        playAnimationToggle = false;
-        cancelAnimationFrame(animationRequest);
-        console.log("cancel animation");
-    }
-
-    videoType = "Select Video";
-
-    const file = e.target.files[0];
-    const url = URL.createObjectURL(file);
-    userVideo.src = url;
-    userVideo.addEventListener('loadedmetadata', () => {
-        
-        userVideo.width = userVideo.videoWidth;
-        userVideo.height = userVideo.videoHeight;
-
-        canvasWidth = userVideo.videoWidth;
-        canvasHeight = userVideo.videoHeight; 
-
-        canvas.width = canvasWidth;
-        canvas.height = canvasHeight;
-
-    });
-    
-    setTimeout(function(){
-        userVideo.play();
-        refresh();
-        playAnimationToggle = true;
-        animationRequest = requestAnimationFrame(loop);
-    },2000);
-
-});
-
+//turn video input into still images, and then into pixelated grayscale values
 const render = (ctx) => {
     if (canvasWidth && canvasHeight) {
         canvasRaw.width = canvasWidth;
@@ -531,6 +278,7 @@ const getCharByScale = (scale) => {
     return preparedGradient[val];
 }
 
+//draw the text and background color for each frame onto the final canvas
 function renderText(){
     
     ctx.fillStyle = backgroundColor;
@@ -540,7 +288,6 @@ function renderText(){
         for(var row=0; row<numRows; row++){
             
             var adjustedThreshold = threshold + (0.2 * Math.sin(counter/30) * randomness);
-            //var adjustedThreshold = threshold; 
             var currentGrayValue = grayscaleDataArray[row][col];
             
             var char;
@@ -572,23 +319,12 @@ function renderText(){
                 ctx.fillRect(col*pixelSize,row*pixelSize,pixelSize,pixelSize);
 
             } else {
-                //ctx.fillStyle = backgroundColor;
-                
-                /*
-                Background color = actual video stream color
-                var r = videoPixels[(row*numCols+col)*4];
-                var g = videoPixels[(row*numCols+col)*4 + 1];
-                var b = videoPixels[(row*numCols+col)*4 + 2];
-                var a = 1;
-                ctx.fillStyle = "rgb("+r+","+g+","+b+","+a+")";
-                */
+
             }
             
             //choose text character to draw
             if(randomColumnArray[col]){
-                //if((counter % (numRows+startingRowArray[col])) > row){
                 if( (((counter+startingRowArray[col]) % 100)/100*numRows)+startingRowArray[col] > row){
-                    //char = preparedGradient[Math.floor(Math.random()*preparedGradient.length)]; //draw random char
                     char = getCharByScale(currentGrayValue);
                 } else {
                     char = "";
@@ -608,8 +344,7 @@ function renderText(){
 
             //draw text onto canvas
             ctx.font = currentFontSize+"px "+fontFamily;
-            //ctx.fillStyle = fontColor;
-            //ctx.fillStyle = "hsl("+fontHue+",80%,"+currentGrayValue/255*100+"%)";
+
             if(invertToggle == false){
                 if(currentGrayValue/255 > adjustedThreshold){
                     
@@ -632,14 +367,15 @@ function renderText(){
 
 }
 
+//animation loop to go frame by frame
 function loop(){
 
     if(counter==0){
         console.log("start animation, first frame");
     }
-    if (playAnimationToggle){
+    if(playAnimationToggle){
         counter++;
-        render(ctx)
+        render(ctx);
 
         if(effectWidth < 1){
             //draw the chosen video onto the final canvas
@@ -654,8 +390,6 @@ function loop(){
 
         renderText();
 
-
-        
         if(recordVideoState == true){
             renderCanvasToVideoFrameAndEncode({
                 canvas,
@@ -666,10 +400,226 @@ function loop(){
             frameNumber++;
         }
         
-
         animationRequest = requestAnimationFrame(loop);
     }
 }
+
+//HELPER FUNCTIONS BELOW
+
+function selectVideo(){
+    videoType = "Select Video";
+    fileInput.click();
+}
+
+function updateGUIState(){
+    if(guiOpenToggle){
+        guiOpenToggle = false;
+    } else {
+        guiOpenToggle = true;
+    }
+}
+
+function refresh(){
+    console.log("refresh");
+    console.log("canvas width/height: "+canvasWidth+", "+canvasHeight);
+
+    document.getElementById("canvasDiv").setAttribute("style", "width: "+canvasWidth+"px;");
+    //effectWidthInput.style.width = canvasWidth;
+    effectWidth = Number(effectWidthInput.value)/100;
+    effectWidthLabel.innerHTML = "Effect Width: "+Math.round(effectWidth*100)+"%";
+
+    animationType = obj.animationType;
+    fontSizeFactor = obj.fontSizeFactor;
+    pixelSizeFactor = obj.pixelSizeFactor;
+    pixelSize = Math.ceil(Math.min(canvasWidth,canvasHeight)/pixelSizeFactor);
+    numCols = Math.ceil(Math.ceil(canvasWidth / pixelSize) * effectWidth);
+    numRows = Math.ceil(canvasHeight / pixelSize);
+    fontSize = pixelSize/0.65;
+    ctx.font = fontSize+"px "+fontFamily;
+
+    fontColor = obj.fontColor;
+    fontColor2 = obj.fontColor2;
+    fontHue = getHueFromHex(fontColor);
+    
+    backgroundColor = obj.backgroundColor;
+    backgroundRGB = hexToRgb(backgroundColor)
+    backgroundHue = getHueFromHex(backgroundColor);
+    backgroundSaturation = obj.backgroundSaturation;;
+    
+    backgroundGradient = obj.backgroundGradient;
+    threshold = obj.threshold/100;
+    textInput = obj.textInput;
+    counter = 0;
+    randomness = obj.randomness/100;
+    invertToggle = obj.invert;
+    randomColumnArray = [];
+    startingRowArray = [];
+
+    for(var i=0; i<numCols; i++){
+        if(Math.random() < randomness){
+            randomColumnArray[i] = true;
+            startingRowArray[i] = Math.floor( Math.random() * numRows );
+        } else {
+            randomColumnArray[i] = false;
+        }
+    }
+}
+
+function togglePausePlay(){
+    
+    if(playAnimationToggle == false){
+        if(videoType == "Webcam"){
+            startWebcam();
+        } else if(videoType == "Select Video"){
+            refresh();
+            userVideo.play();
+            playAnimationToggle = true;
+            animationRequest = requestAnimationFrame(loop);
+        } else if(videoType == "Default"){
+            startDefaultVideo();
+        }
+    } else {
+        stopVideo();
+    }
+    
+}
+
+function changeVideoType(){
+    stopVideo();
+
+    if(videoType == "Webcam"){
+        startWebcam();
+
+    } else if(videoType == "Select Video"){
+        console.log("select video file");
+        selectVideo();
+
+    } else if(videoType == "Default"){
+        startDefaultVideo();
+    }
+
+    refresh();
+
+}
+
+function startDefaultVideo(){
+    if(playAnimationToggle==true){
+        playAnimationToggle = false;
+        cancelAnimationFrame(animationRequest);
+        console.log("cancel animation");
+    }
+
+    canvasWidth = defaultVideoWidth;
+    canvasHeight = defaultVideoHeight;
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+
+    defaultVideo.play();
+    playAnimationToggle = true;
+    animationRequest = requestAnimationFrame(loop);
+}
+
+function startWebcam() {
+
+    if(playAnimationToggle==true){
+        playAnimationToggle = false;
+        cancelAnimationFrame(animationRequest);
+        console.log("cancel animation");
+    }
+
+    navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: true
+    })
+    .then(stream => {
+        window.localStream = stream;
+        webcamVideo.srcObject = stream;
+        webcamVideo.play();
+        if(isIOS || isAndroid){
+            webcamAspectRatio = 3/4;
+        } else {
+            webcamAspectRatio = stream.getVideoTracks()[0].getSettings().aspectRatio;
+        }
+
+        if(webcamAspectRatio == undefined){
+            webcamAspectRatio = 1.33333;
+        }
+        console.log("Aspect Ratio: "+webcamAspectRatio);
+
+        resizedWebcamWidth = Math.min(webcamVideoMaxWidth,Math.floor(window.innerWidth));
+        resizedWebcamHeight = Math.round(resizedWebcamWidth / webcamAspectRatio);
+    
+        canvasWidth = resizedWebcamWidth;
+        canvasHeight = resizedWebcamHeight;
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+
+        refresh();
+
+        playAnimationToggle = true;
+        animationRequest = requestAnimationFrame(loop);
+    })
+    .catch((err) => {
+        console.log(err);
+    });
+
+}
+
+var localStream;
+function stopVideo(){
+
+    if(playAnimationToggle==true){
+        playAnimationToggle = false;
+        cancelAnimationFrame(animationRequest);
+        console.log("cancel animation");
+    }
+
+    webcamVideo.pause();
+    userVideo.pause();
+    defaultVideo.pause();
+
+    if(localStream == null){
+    } else {
+        localStream.getVideoTracks()[0].stop();
+    }
+}
+
+var fileInput = document.getElementById("fileInput");
+fileInput.addEventListener('change', (e) => {
+
+    if(playAnimationToggle==true){
+        playAnimationToggle = false;
+        cancelAnimationFrame(animationRequest);
+        console.log("cancel animation");
+    }
+
+    videoType = "Select Video";
+
+    const file = e.target.files[0];
+    const url = URL.createObjectURL(file);
+    userVideo.src = url;
+    userVideo.addEventListener('loadedmetadata', () => {
+        
+        userVideo.width = userVideo.videoWidth;
+        userVideo.height = userVideo.videoHeight;
+        console.log("user video width/height: "+userVideo.width+", "+userVideo.height);
+
+        canvasWidth = Math.min(userVideo.videoWidth, maxCanvasWidth);
+        canvasHeight = Math.floor(canvasWidth * (userVideo.videoHeight / userVideo.videoWidth)); 
+
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+
+    });
+    
+    setTimeout(function(){
+        userVideo.play();
+        refresh();
+        playAnimationToggle = true;
+        animationRequest = requestAnimationFrame(loop);
+    },2000);
+
+});
 
 function getAverageColor(chosenPixels) {
     var r = 0;
