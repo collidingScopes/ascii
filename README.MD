@@ -8,6 +8,8 @@ This project is coded using Javascript, HTML canvas, and CSS. Video creation and
 
 I do not have access to any of the videos that you upload here, as all processing is done "client-side" (i.e., no videos or images are saved/stored by me — they stay on your computer only).
 
+Enormous thanks and credits to <a href="https://medium.com/@sasha.kub95/webcam-stream-to-ascii-art-with-javascript-2a2f9a39befb" target="_blank" rel="noopener">Aleksandr Kubarskii</a>, whose code served as the foundation for this project.
+
 <img src="/assets/metro.png">
 
 License
