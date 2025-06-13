@@ -120,6 +120,7 @@ var obj = {
     randomness: 15,
     invert: false,
     animationType: 'Random Text',
+    rotationAngle: 0 // Default rotation angle (0 degrees) 
 };
 
 var videoType = "Default";
@@ -172,6 +173,7 @@ gui.add(obj, "randomness").min(0).max(100).step(1).name('Randomness').onChange(r
 
 gui.add(obj, 'animationType', [ 'Random Text', 'User Text'] ).name('Text Type').onChange(refresh);
 gui.add(obj, "textInput").onFinishChange(refresh);
+gui.add(obj, "rotationAngle").min(0).max(360).step(1).name('Rotation').onChange(refresh);
 
 obj['pausePlay'] = function () {
     togglePausePlay();
@@ -348,10 +350,32 @@ function renderText(){
             if(invertToggle == false){
                 if(currentGrayValue/255 > adjustedThreshold){
                     
-                    ctx.fillStyle = interpolateHex(fontColor,fontColor2,(currentGrayValue/255-adjustedThreshold) / (1-adjustedThreshold))                    
-                    ctx.fillText(char, col*pixelSize, row*(pixelSize) + pixelSize);
-                    //ctx.strokeStyle = fontColor;
-                    //ctx.strokeText(char, col*pixelSize + pixelSize/4, row*(pixelSize) + pixelSize/2);
+           if (currentGrayValue / 255 < (1 - adjustedThreshold)) {
+    // Save the context before rotating
+    ctx.save();
+
+    // Translate the context to the center of each character
+    ctx.translate(col * pixelSize + pixelSize / 2, row * pixelSize + pixelSize / 2);
+
+    // Rotate the context based on the rotation angle from the slider
+    ctx.rotate(obj.rotationAngle * Math.PI / 180); // Convert degrees to radians
+
+    // Set the fill style based on the gray value
+    ctx.fillStyle = interpolateHex(fontColor2, fontColor, (currentGrayValue / 255) / (1 - adjustedThreshold));
+
+    // Draw the rotated text
+    ctx.fillText(char, -pixelSize / 2, pixelSize / 2);
+
+    // Restore the context to its original state
+    ctx.restore();
+} else {
+    // Set the fill style based on the other condition
+    ctx.fillStyle = interpolateHex(fontColor, fontColor2, (currentGrayValue / 255 - adjustedThreshold) / (1 - adjustedThreshold));
+
+    // Draw the text without rotation
+    ctx.fillText(char, col * pixelSize, row * pixelSize + pixelSize);
+}
+
                 }
             } else {
                 if(currentGrayValue/255 < (1-adjustedThreshold)){
